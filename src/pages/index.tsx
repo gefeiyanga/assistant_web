@@ -270,8 +270,8 @@ export default function Home() {
                 <Image
                   className={style.avatar}
                   src={AI_AVATAR}
-                  width={30}
-                  height={30}
+                  width={34}
+                  height={34}
                   alt=""
                 />
                 <div
