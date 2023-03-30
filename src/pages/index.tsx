@@ -1,5 +1,6 @@
 import mdKatex from "@traptitech/markdown-it-katex";
 import hljs from "highlight.js";
+import "highlight.js/styles/xcode.css";
 import MarkdownIt from "markdown-it";
 import mila from "markdown-it-link-attributes";
 import Image from "next/image";
@@ -27,13 +28,14 @@ import DOMPurify from "dompurify";
 
 import AI_AVATAR from "public/icons/ai.png";
 import ASSISTANTS from "@/configs/assistants";
+import useCopyCode from "@/hooks/useCopyCode";
 
 import style from "./index.module.sass";
 
 const DIETEXT = "Please wait a minute";
 
 function highlightBlock(str: string, lang?: string) {
-  return `<pre style="white-space: pre-wrap" class="code-block-wrapper"><code class="hljs code-block-body ${lang}">${str}</code></pre>`;
+  return `<pre style="white-space: pre-wrap" class="code-block-wrapper ${style["code-block-wrapper"]}"><div class="${style["code-block-header"]}"><span class="${style["code-block-header__lang"]}">${lang}</span><span class="code-block-header__copy ${style["code-block-header__copy"]}">复制</span></div><code class="hljs code-block-body ${lang}">${str}</code></pre>`;
 }
 
 const mdi = new MarkdownIt({
@@ -48,6 +50,7 @@ const mdi = new MarkdownIt({
       );
     }
     return highlightBlock(hljs.highlightAuto(code).value, "");
+    // return hljs.highlightAuto(code).value;
   },
 });
 mdi.use(mila, { attrs: { target: "_blank", rel: "noopener" } });
@@ -63,11 +66,18 @@ export default function Home() {
   const inputRef = useRef<any>(null);
   const toast = useToast({
     position: "top",
+    duration: 3000,
+    variant: "subtle",
+    containerStyle: {
+      color: "#333333",
+      fontWeight: 700,
+    },
   });
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [currentRole, setCurrentRole] = useState<any>(
     ASSISTANTS[0]["roleList"][0]
   );
+  useCopyCode(conversationList);
 
   const changeInputValue = (e: any) => {
     setInputValue(e?.target?.value);
@@ -136,6 +146,8 @@ export default function Home() {
       const reader = response.body.getReader();
       let text = "";
 
+      let prevData;
+
       // infinite loop while the body is downloading
       while (true) {
         // done is true for the last chunk
@@ -156,6 +168,7 @@ export default function Home() {
         }
         try {
           const data = JSON.parse(chunk);
+          prevData = JSON.parse(chunk);
 
           if (data?.text) {
             text = mdi.render(data?.text);
@@ -167,6 +180,7 @@ export default function Home() {
               ...data,
               owner: "ai",
               text,
+              done,
             },
           ]);
         } catch (error) {
@@ -177,6 +191,16 @@ export default function Home() {
               {
                 owner: "ai",
                 text: DIETEXT,
+              },
+            ]);
+          } else {
+            setConversationList([
+              ...newList,
+              {
+                ...prevData,
+                owner: "ai",
+                text,
+                done,
               },
             ]);
           }
@@ -192,6 +216,8 @@ export default function Home() {
       setLoading(false);
       inputRef?.current?.focus();
     } catch (error) {
+      console.log(error);
+
       document.querySelector("#last")?.scrollIntoView();
       setConversationList([
         ...newList,
@@ -210,7 +236,7 @@ export default function Home() {
     <>
       <div className={style.drawerBtnWrap}>
         <Stack direction="row">
-          <Badge colorScheme="red" variant="subtle">
+          <Badge variant="outline" colorScheme="teal">
             {currentRole?.title}
           </Badge>
         </Stack>
@@ -263,7 +289,7 @@ export default function Home() {
         </Drawer>
 
         <div className={style.infoListWrap} id="infoListWrap">
-          {conversationList?.map((info: any, index) =>
+          {conversationList?.map((info: any, index: any) =>
             info?.owner === "ai" ? (
               <div key={info?.id ?? 0 + index} className={style.aiInfoWrap}>
                 <Image

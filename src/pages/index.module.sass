@@ -63,9 +63,28 @@
         max-width: 80%
         padding: 2px 8px
         border-radius: 4px
-        background: #C6F6D5
+        // background: #C6F6D5
+        background: #e5e9ec
         img
           width: 100%
+        .code-block-wrapper 
+          position: relative
+          padding-top: 24px
+          .code-block-header 
+            position: absolute
+            top: -6px
+            right: 0
+            width: 100%
+            display: flex
+            justify-content: flex-end
+            align-items: center
+            color: #b3b3b3
+            .code-block-header__copy 
+              cursor: pointer
+              margin-left: 0.5rem
+              user-select: none
+              &:hover 
+                color: teal
     .meInfoWrap
       flex-direction: row-reverse
       .avatar
@@ -81,7 +100,8 @@
           display: inline-block
           padding: 2px 8px
           border-radius: 4px
-          background: #FED7E2
+          // background: #FED7E2
+          background: #e5e9ec
   .loading
     position: absolute
     z-index: 100
