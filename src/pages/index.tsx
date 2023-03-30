@@ -1,12 +1,10 @@
 import mdKatex from "@traptitech/markdown-it-katex";
 import hljs from "highlight.js";
-import "highlight.js/styles/xcode.css";
 import MarkdownIt from "markdown-it";
 import mila from "markdown-it-link-attributes";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import {
-  DrawerOverlay,
   DrawerContent,
   DrawerHeader,
   DrawerBody,
@@ -25,6 +23,7 @@ import {
   AccordionIcon,
 } from "@chakra-ui/react";
 import autosize from "autosize";
+import DOMPurify from "dompurify";
 
 import AI_AVATAR from "public/icons/ai.png";
 import ASSISTANTS from "@/configs/assistants";
@@ -276,7 +275,10 @@ export default function Home() {
                 />
                 <div
                   className={style.text}
-                  dangerouslySetInnerHTML={{ __html: info?.text }}
+                  dangerouslySetInnerHTML={{
+                    // __html: (info?.text),
+                    __html: DOMPurify.sanitize(info?.text),
+                  }}
                 ></div>
               </div>
             ) : (
