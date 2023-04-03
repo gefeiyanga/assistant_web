@@ -15,6 +15,10 @@ const nextConfig = {
         source: "/chat",
         destination: "http://localhost:3000/open-ai/chat",
       },
+      {
+        source: "/translate",
+        destination: "https://fanyi-api.baidu.com/api/trans/vip/translate",
+      },
     ];
   },
 };

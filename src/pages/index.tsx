@@ -3,8 +3,9 @@ import hljs from "highlight.js";
 import "highlight.js/styles/xcode.css";
 import MarkdownIt from "markdown-it";
 import mila from "markdown-it-link-attributes";
-import Image from "next/image";
+import NextImage from "next/image";
 import { useEffect, useRef, useState } from "react";
+
 import {
   DrawerContent,
   DrawerHeader,
@@ -31,6 +32,7 @@ import ASSISTANTS from "@/configs/assistants";
 import useCopyCode from "@/hooks/useCopyCode";
 
 import style from "./index.module.sass";
+const md5 = require("blueimp-md5");
 
 const DIETEXT = "Please wait a minute";
 
@@ -77,6 +79,7 @@ export default function Home() {
   const [currentRole, setCurrentRole] = useState<any>(
     ASSISTANTS[0]["roleList"][0]
   );
+
   useCopyCode(conversationList);
 
   const changeInputValue = (e: any) => {
@@ -90,6 +93,45 @@ export default function Home() {
       autosize.destroy(inputRef.current);
     };
   }, []);
+
+  async function queryImageFromText(data: any) {
+    const response = await fetch(
+      "https://api-inference.huggingface.co/models/prompthero/openjourney",
+      {
+        headers: {
+          Authorization: "Bearer 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",
+        },
+        method: "POST",
+        body: JSON.stringify(data),
+      }
+    );
+    const result = await response.blob();
+    return result;
+  }
+
+  async function translator(data: any) {
+    let formBody = new URLSearchParams();
+    formBody.append("q", data?.q);
+    formBody.append("salt", "variousdid");
+    formBody.append("from", "auto");
+    formBody.append("to", "en");
+    formBody.append("appid", "20230331001622946");
+    formBody.append(
+      "sign",
+      md5("20230331001622946" + data?.q + "variousdid" + "hAJX6N850CHRDRwm8PsW")
+    );
+
+    const response = await fetch("/translate", {
+      method: "POST",
+      body: formBody,
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+    });
+
+    const result = await response.json();
+    return result;
+  }
 
   const send = async () => {
     if (loading) {
@@ -115,6 +157,40 @@ export default function Home() {
     ];
     setConversationList([...newList]);
 
+    const question = inputValue;
+    setInputValue("");
+    document.querySelector("#last")?.scrollIntoView();
+
+    if (currentRole?.type === "text-to-image") {
+      const translatedQ = await translator({ q: question });
+      const inputs = translatedQ?.trans_result[0].dst + ", mdjrny-v4 style";
+      try {
+        queryImageFromText({ inputs }).then(async (response) => {
+          // Use image
+          console.log(response);
+          const image = new (Image as any)(256, 256);
+          const url = await URL.createObjectURL(response);
+          image["src"] = url;
+          const img = `<img src=${url} width=256 height=256 />`;
+          console.log(img);
+          setConversationList([
+            ...newList,
+            {
+              owner: "ai",
+              text: img,
+            },
+          ]);
+          inputRef?.current?.focus();
+          setLoading(false);
+          document.querySelector("#last")?.scrollIntoView();
+        });
+      } catch (error) {
+        setLoading(false);
+        inputRef?.current?.focus();
+      }
+      return;
+    }
+
     let id = "";
     for (let i = newList?.length - 1; i >= 0; i--) {
       if (newList[i]?.owner === "ai") {
@@ -122,8 +198,6 @@ export default function Home() {
         break;
       }
     }
-    const question = inputValue;
-    setInputValue("");
 
     document
       .querySelector("#last")
@@ -292,7 +366,7 @@ export default function Home() {
           {conversationList?.map((info: any, index: any) =>
             info?.owner === "ai" ? (
               <div key={info?.id ?? 0 + index} className={style.aiInfoWrap}>
-                <Image
+                <NextImage
                   className={style.avatar}
                   src={AI_AVATAR}
                   width={34}
@@ -302,8 +376,10 @@ export default function Home() {
                 <div
                   className={style.text}
                   dangerouslySetInnerHTML={{
-                    // __html: (info?.text),
-                    __html: DOMPurify.sanitize(info?.text),
+                    // __html: info?.text,
+                    __html: DOMPurify.sanitize(info?.text, {
+                      ALLOW_UNKNOWN_PROTOCOLS: true,
+                    }),
                   }}
                 ></div>
               </div>

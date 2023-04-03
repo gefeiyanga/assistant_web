@@ -82,5 +82,14 @@ const ASSISTANTS: any[] = [
       },
     ],
   },
+  {
+    title: "图片生成",
+    roleList: [
+      {
+        type: "text-to-image",
+        title: "图片生成助手",
+      },
+    ],
+  },
 ];
 export default ASSISTANTS;
