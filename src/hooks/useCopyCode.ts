@@ -20,7 +20,6 @@ const useCopyCode = (conversationList: any[]) => {
         const copyBtn = wrapper.querySelector(".code-block-header__copy");
         const codeBlock = wrapper.querySelector(".code-block-body");
         if (copyBtn && codeBlock) {
-          console.log(copyBtn, codeBlock);
           copyBtn.addEventListener("click", () => {
             if (navigator.clipboard?.writeText) {
               navigator.clipboard.writeText(codeBlock.textContent ?? "");
