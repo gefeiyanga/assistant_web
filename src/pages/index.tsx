@@ -80,6 +80,12 @@ export default function Home() {
     ASSISTANTS[0]["roleList"][0]
   );
 
+  useEffect(() => {
+    setConversationList(
+      JSON.parse(localStorage.getItem("conversationList") || "[]")
+    );
+  }, []);
+
   useCopyCode(conversationList);
 
   const changeInputValue = (e: any) => {
@@ -156,6 +162,7 @@ export default function Home() {
       },
     ];
     setConversationList([...newList]);
+    localStorage.setItem("conversationList", JSON.stringify([...newList]));
 
     const question = inputValue;
     setInputValue("");
@@ -167,12 +174,10 @@ export default function Home() {
       try {
         queryImageFromText({ inputs }).then(async (response) => {
           // Use image
-          console.log(response);
           const image = new (Image as any)(256, 256);
           const url = await URL.createObjectURL(response);
           image["src"] = url;
           const img = `<img src=${url} width=256 height=256 />`;
-          console.log(img);
           setConversationList([
             ...newList,
             {
@@ -180,6 +185,16 @@ export default function Home() {
               text: img,
             },
           ]);
+          localStorage.setItem(
+            "conversationList",
+            JSON.stringify([
+              ...newList,
+              {
+                owner: "ai",
+                text: img,
+              },
+            ])
+          );
           inputRef?.current?.focus();
           setLoading(false);
           document.querySelector("#last")?.scrollIntoView();
@@ -257,6 +272,18 @@ export default function Home() {
               done,
             },
           ]);
+          localStorage.setItem(
+            "conversationList",
+            JSON.stringify([
+              ...newList,
+              {
+                ...data,
+                owner: "ai",
+                text,
+                done,
+              },
+            ])
+          );
         } catch (error) {
           if (!text?.trim()?.length) {
             document.querySelector("#last")?.scrollIntoView();
@@ -267,6 +294,16 @@ export default function Home() {
                 text: DIETEXT,
               },
             ]);
+            localStorage.setItem(
+              "conversationList",
+              JSON.stringify([
+                ...newList,
+                {
+                  owner: "ai",
+                  text: DIETEXT,
+                },
+              ])
+            );
           } else {
             setConversationList([
               ...newList,
@@ -277,6 +314,18 @@ export default function Home() {
                 done,
               },
             ]);
+            localStorage.setItem(
+              "conversationList",
+              JSON.stringify([
+                ...newList,
+                {
+                  ...prevData,
+                  owner: "ai",
+                  text,
+                  done,
+                },
+              ])
+            );
           }
         }
 
@@ -300,6 +349,16 @@ export default function Home() {
           text: DIETEXT,
         },
       ]);
+      localStorage.setItem(
+        "conversationList",
+        JSON.stringify([
+          ...newList,
+          {
+            owner: "ai",
+            text: DIETEXT,
+          },
+        ])
+      );
 
       setLoading(false);
       inputRef?.current?.focus();
