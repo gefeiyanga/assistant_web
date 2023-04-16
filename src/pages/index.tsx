@@ -101,17 +101,19 @@ export default function Home() {
   }, []);
 
   async function queryImageFromText(data: any) {
-    const response = await fetch(
-      "https://api-inference.huggingface.co/models/prompthero/openjourney",
-      {
-        headers: {
-          Authorization: "Bearer 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",
-        },
-        method: "POST",
-        body: JSON.stringify(data),
-      }
-    );
-    const result = await response.blob();
+    const form = new FormData();
+    form.append("prompt", data?.inputs);
+
+    const response = await fetch("https://clipdrop-api.co/text-to-image/v1", {
+      method: "POST",
+      headers: {
+        "x-api-key":
+          "ccb49fcfc0a588c484dcdb69092f906755d553008cb47fcd4fc6e327ff2002ab424a2989d64eb7902268e98b9bb25203",
+      },
+      body: form,
+    });
+
+    const result = new Blob([await response.arrayBuffer()]);
     return result;
   }
 
@@ -170,9 +172,9 @@ export default function Home() {
 
     if (currentRole?.type === "text-to-image") {
       const translatedQ = await translator({ q: question });
-      const inputs = translatedQ?.trans_result[0].dst + ", mdjrny-v4 style";
+      const inputs = "photograph of " + translatedQ?.trans_result[0].dst;
       try {
-        queryImageFromText({ inputs }).then(async (response) => {
+        queryImageFromText({ inputs }).then(async (response: any) => {
           // Use image
           const image = new (Image as any)(256, 256);
           const url = await URL.createObjectURL(response);
