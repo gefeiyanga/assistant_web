@@ -370,15 +370,34 @@ export default function Home() {
   return (
     <>
       <div className={style.drawerBtnWrap}>
-        <Stack direction="row">
-          <Badge variant="outline" colorScheme="teal">
-            {currentRole?.title}
-          </Badge>
-        </Stack>
-        <Stack direction="row">
-          <Button color="teal" variant="link" onClick={onOpen}>
-            切换助手
-          </Button>
+        <Stack
+          direction="row"
+          alignItems="center"
+          justifyContent="space-between"
+        >
+          <Stack direction="column">
+            <Stack direction="row">
+              <Badge variant="outline" colorScheme="teal">
+                {currentRole?.title}
+              </Badge>
+            </Stack>
+            <Stack direction="row">
+              <Button color="teal" variant="link" onClick={onOpen}>
+                切换助手
+              </Button>
+            </Stack>
+          </Stack>
+          <Stack>
+            <Button
+              color="teal"
+              onClick={() => {
+                localStorage.removeItem("conversationList");
+                setConversationList([]);
+              }}
+            >
+              清除聊天记录
+            </Button>
+          </Stack>
         </Stack>
       </div>
       <Box
