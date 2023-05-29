@@ -2,6 +2,7 @@ import "@/styles/globals.css";
 import type { AppProps } from "next/app";
 import { ChakraProvider, Container } from "@chakra-ui/react";
 import { useEffect } from "react";
+import Nossr from "@/components/Nossr";
 
 export default function App({ Component, pageProps }: AppProps) {
   const handleResize = () => {
@@ -22,7 +23,9 @@ export default function App({ Component, pageProps }: AppProps) {
         margin={0}
         padding={0}
       >
-        <Component {...pageProps} />
+        <Nossr>
+          <Component {...pageProps} />
+        </Nossr>
       </Container>
     </ChakraProvider>
   );
