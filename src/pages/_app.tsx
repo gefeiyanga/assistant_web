@@ -20,6 +20,7 @@ export default function App({ Component, pageProps }: AppProps) {
         width="100vw"
         height="calc(var(--vh, 1vh) * 100)"
         margin={0}
+        padding={0}
       >
         <Component {...pageProps} />
       </Container>
