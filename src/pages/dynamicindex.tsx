@@ -64,6 +64,7 @@ export default function Home() {
   const isFinishInputRef = useRef<boolean>(true);
   const inputRef = useRef<any>(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [isGPT4, setIsGPT4] = useState(false);
   const toast = useToast({
     position: "top",
     duration: 3000,
@@ -235,7 +236,7 @@ export default function Home() {
           question,
           id,
           systemMessage: currentRole?.systemMessage,
-          // model: "gpt4",
+          model: isGPT4 ? "gpt4" : "",
         }),
       });
 
@@ -435,9 +436,23 @@ export default function Home() {
           >
             <Stack direction="column">
               <Stack direction="row">
-                <Badge variant="outline" colorScheme="teal">
-                  {currentRole?.title}
-                </Badge>
+                <Stack direction="row">
+                  <Badge variant="outline" colorScheme="teal">
+                    {currentRole?.title}
+                  </Badge>
+                </Stack>
+                <Stack direction="row">
+                  <Badge
+                    variant="outline"
+                    colorScheme="teal"
+                    cursor={"pointer"}
+                    onClick={() => {
+                      setIsGPT4(!isGPT4);
+                    }}
+                  >
+                    {isGPT4 ? "GPT4" : "GPT3"}
+                  </Badge>
+                </Stack>
               </Stack>
               {isMobile && (
                 <Stack direction="row">
