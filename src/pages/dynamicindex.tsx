@@ -19,9 +19,14 @@ import {
   Button,
   Stack,
   Badge,
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
 } from "@chakra-ui/react";
 import autosize from "autosize";
 import DOMPurify from "dompurify";
+import { CopyToClipboard } from "react-copy-to-clipboard";
+import { saveAs } from "file-saver";
 
 import AI_AVATAR from "public/icons/ai.png";
 import ASSISTANTS from "@/configs/assistants";
@@ -29,6 +34,7 @@ import useCopyCode from "@/hooks/useCopyCode";
 import { scrollToBottom } from "@/utils/util";
 
 import style from "./index.module.sass";
+
 const md5 = require("blueimp-md5");
 
 const DIETEXT = "Please wait a minute";
@@ -242,7 +248,8 @@ export default function Home() {
 
       // instead of response.json() and other methods
       const reader = response.body.getReader();
-      let text = "";
+      let text = "",
+        originText = "";
 
       let prevData;
 
@@ -269,6 +276,7 @@ export default function Home() {
           prevData = JSON.parse(chunk);
 
           if (data?.text) {
+            originText = data?.text;
             text = mdi.render(data?.text);
           }
 
@@ -279,6 +287,7 @@ export default function Home() {
               owner: "ai",
               text,
               done,
+              originText,
             },
           ]);
           scrollToBottom();
@@ -291,6 +300,7 @@ export default function Home() {
                 owner: "ai",
                 text,
                 done,
+                originText,
               },
             ])
           );
@@ -322,6 +332,7 @@ export default function Home() {
                 owner: "ai",
                 text,
                 done,
+                originText,
               },
             ]);
             scrollToBottom();
@@ -334,6 +345,7 @@ export default function Home() {
                   owner: "ai",
                   text,
                   done,
+                  originText,
                 },
               ])
             );
@@ -373,18 +385,15 @@ export default function Home() {
     }
   };
 
-  return (
-    <Container
-      className={style.containerWrap}
-      position="relative"
-      maxWidth="100vw"
-      width="100vw"
-      height="calc(var(--vh, 1vh) * 100)"
-      margin={0}
-      padding={0}
-    >
-      {!isMobile && (
-        <aside>
+  const asideChildren = (padding: number) => {
+    return (
+      <>
+        <Box
+          height={
+            padding ? `calc(100vh - 60px - ${padding}px)` : "calc(100vh - 60px)"
+          }
+          overflow="auto"
+        >
           {ASSISTANTS?.map((item: any, index: number) => (
             <div className={style.singleItem} key={index}>
               <Box
@@ -417,7 +426,50 @@ export default function Home() {
               ))}
             </div>
           ))}
-        </aside>
+        </Box>
+        <Box justifyContent="space-around" display="flex" height="60px">
+          <Button
+            color="teal"
+            onClick={() => {
+              const blob = new Blob(
+                // @ts-ignore
+                [document.querySelector("#infoListWrap")?.innerHTML],
+                {
+                  type: "text/plain;charset=utf-8",
+                }
+              );
+              saveAs(blob, "Hello World.html");
+            }}
+          >
+            导出
+          </Button>
+
+          <Button
+            color="teal"
+            onClick={() => {
+              localStorage.removeItem("conversationList");
+              setConversationList([]);
+            }}
+          >
+            清除聊天记录
+          </Button>
+        </Box>
+      </>
+    );
+  };
+
+  return (
+    <Container
+      className={style.containerWrap}
+      position="relative"
+      maxWidth="100vw"
+      width="100vw"
+      height="calc(var(--vh, 1vh) * 100)"
+      margin={0}
+      padding={0}
+    >
+      {!isMobile && (
+        <aside style={{ overflow: "hidden" }}>{asideChildren(0)}</aside>
       )}
 
       <Container
@@ -462,17 +514,6 @@ export default function Home() {
                 </Stack>
               )}
             </Stack>
-            <Stack>
-              <Button
-                color="teal"
-                onClick={() => {
-                  localStorage.removeItem("conversationList");
-                  setConversationList([]);
-                }}
-              >
-                清除聊天记录
-              </Button>
-            </Stack>
           </Stack>
         </div>
         <Box
@@ -481,42 +522,8 @@ export default function Home() {
         >
           <Drawer placement="right" onClose={onClose} isOpen={isOpen}>
             <DrawerContent>
-              <DrawerHeader>助手分类</DrawerHeader>
               <DrawerBody className={style.drawerBodyWrap}>
-                {ASSISTANTS?.map((item: any, index: number) => (
-                  <div className={style.singleItem} key={index}>
-                    <Box
-                      color="teal"
-                      as="span"
-                      flex="1"
-                      textAlign="left"
-                      padding="0px 10px"
-                    >
-                      {item?.title}
-                    </Box>
-                    {item?.roleList?.map(
-                      (childItem: any, childIndex: number) => (
-                        <div
-                          className={
-                            currentRole === childItem
-                              ? `${style.childItem}`
-                              : `${style.notActive}`
-                          }
-                          key={childIndex}
-                        >
-                          <div
-                            onClick={() => {
-                              setCurrentRole(childItem);
-                              onClose();
-                            }}
-                          >
-                            {childItem?.title}
-                          </div>
-                        </div>
-                      )
-                    )}
-                  </div>
-                ))}
+                {asideChildren(8 * 2)}
               </DrawerBody>
             </DrawerContent>
           </Drawer>
@@ -525,34 +532,73 @@ export default function Home() {
             {conversationList?.map((info: any, index: any) =>
               info?.owner === "ai" ? (
                 <div key={info?.id ?? 0 + index} className={style.aiInfoWrap}>
-                  <NextImage
+                  {/* <NextImage
                     className={style.avatar}
                     src={AI_AVATAR}
                     width={34}
                     height={34}
                     alt=""
-                  />
-                  <div
-                    className={style.text}
-                    dangerouslySetInnerHTML={{
-                      // __html: info?.text,
-                      __html: DOMPurify.sanitize(info?.text, {
-                        ALLOW_UNKNOWN_PROTOCOLS: true,
-                      }),
-                    }}
-                  ></div>
+                  /> */}
+                  <span className={style.avatar}>🤖️</span>
+                  <Popover trigger="hover" placement="right-end">
+                    <PopoverTrigger>
+                      <div
+                        className={style.text}
+                        dangerouslySetInnerHTML={{
+                          // __html: info?.text,
+                          __html: DOMPurify.sanitize(info?.text, {
+                            ALLOW_UNKNOWN_PROTOCOLS: true,
+                          }),
+                        }}
+                      ></div>
+                    </PopoverTrigger>
+                    <PopoverContent
+                      style={{
+                        background: "transparent",
+                        border: "0px",
+                        boxShadow: "0px 0px 0px",
+                      }}
+                    >
+                      <CopyToClipboard text={info?.originText}>
+                        <Button
+                          style={{ width: 50, height: 34 }}
+                          colorScheme="teal"
+                          variant="solid"
+                        >
+                          复制
+                        </Button>
+                      </CopyToClipboard>
+                    </PopoverContent>
+                  </Popover>
                 </div>
               ) : (
                 <div key={info?.id ?? 0 + index} className={style.meInfoWrap}>
                   <span className={style.avatar}>😁</span>
-                  <div className={style.myMessageWrap}>
-                    <div className={style.text}>{info?.text}</div>
-                    {info?.reference && (
-                      <div className={style.reference}>
-                        ChatGPT: {info?.reference?.text}
+                  <Popover trigger="hover" placement="left-end">
+                    <PopoverTrigger>
+                      <div className={style.myMessageWrap}>
+                        <div className={style.text}>{info?.text}</div>
                       </div>
-                    )}
-                  </div>
+                    </PopoverTrigger>
+                    <PopoverContent
+                      style={{
+                        background: "transparent",
+                        border: "0px",
+                        boxShadow: "0px 0px 0px",
+                        width: "auto",
+                      }}
+                    >
+                      <CopyToClipboard text={info?.text}>
+                        <Button
+                          style={{ width: 50, height: 34 }}
+                          colorScheme="teal"
+                          variant="solid"
+                        >
+                          复制
+                        </Button>
+                      </CopyToClipboard>
+                    </PopoverContent>
+                  </Popover>
                 </div>
               )
             )}
