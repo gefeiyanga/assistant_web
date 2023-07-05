@@ -545,7 +545,7 @@ export default function Home() {
                   <span className={style.avatar}>🤖️</span>
                   <Popover
                     trigger="hover"
-                    placement="right-end"
+                    placement={isMobile ? "top-start" : "right-end"}
                     closeDelay={300}
                   >
                     <PopoverTrigger>
