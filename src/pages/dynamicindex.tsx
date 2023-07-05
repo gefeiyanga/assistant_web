@@ -67,6 +67,7 @@ export default function Home() {
   const [inputValue, setInputValue] = useState("");
   const [loading, setLoading] = useState(false);
   const [conversationList, setConversationList] = useState<any[]>([]);
+  const [isCopiedList, setIsCopiedList] = useState<any[]>([]);
   const isFinishInputRef = useRef<boolean>(true);
   const inputRef = useRef<any>(null);
   const [isMobile, setIsMobile] = useState(false);
@@ -89,6 +90,7 @@ export default function Home() {
     setConversationList(
       JSON.parse(localStorage.getItem("conversationList") || "[]")
     );
+    setIsCopiedList([]);
   }, []);
 
   useCopyCode(conversationList);
@@ -236,7 +238,7 @@ export default function Home() {
       const response: any = await fetch("/chat", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type": "application/json;charset=UTF-8",
         },
         body: JSON.stringify({
           question,
@@ -248,6 +250,7 @@ export default function Home() {
 
       // instead of response.json() and other methods
       const reader = response.body.getReader();
+      let decoder = new TextDecoder("utf-8");
       let text = "",
         originText = "";
 
@@ -259,9 +262,9 @@ export default function Home() {
         // value is Uint8Array of the chunk bytes
         const { done, value } = await reader.read();
 
-        let encodedString = String.fromCodePoint.apply(null, value);
-        let decodedString = decodeURIComponent(escape(encodedString)); //没有这一步中文会乱码
-
+        // let encodedString = String.fromCodePoint.apply(null, value);
+        // let decodedString = decodeURIComponent(escape(encodedString)); //没有这一步中文会乱码
+        let decodedString = decoder.decode(value);
         // Always process the final line
         const lastIndex = decodedString.lastIndexOf(
           "\n",
@@ -540,7 +543,11 @@ export default function Home() {
                     alt=""
                   /> */}
                   <span className={style.avatar}>🤖️</span>
-                  <Popover trigger="hover" placement="right-end">
+                  <Popover
+                    trigger="hover"
+                    placement="right-end"
+                    closeDelay={300}
+                  >
                     <PopoverTrigger>
                       <div
                         className={style.text}
@@ -561,11 +568,22 @@ export default function Home() {
                     >
                       <CopyToClipboard text={info?.originText}>
                         <Button
-                          style={{ width: 50, height: 34 }}
+                          style={{ width: 70, height: 34, fontSize: 12 }}
                           colorScheme="teal"
                           variant="solid"
+                          onClick={() => {
+                            const arr: any[] = [...isCopiedList];
+                            arr[index] = true;
+                            setIsCopiedList([...arr]);
+                            const to = setTimeout(() => {
+                              const arr: any[] = [...isCopiedList];
+                              arr[index] = false;
+                              setIsCopiedList([...arr]);
+                              to && clearTimeout(to);
+                            }, 2000);
+                          }}
                         >
-                          复制
+                          {isCopiedList[index] ? "COPIED" : "COPY"}
                         </Button>
                       </CopyToClipboard>
                     </PopoverContent>
@@ -574,7 +592,11 @@ export default function Home() {
               ) : (
                 <div key={info?.id ?? 0 + index} className={style.meInfoWrap}>
                   <span className={style.avatar}>😁</span>
-                  <Popover trigger="hover" placement="left-end">
+                  <Popover
+                    trigger="hover"
+                    placement="left-end"
+                    closeDelay={300}
+                  >
                     <PopoverTrigger>
                       <div className={style.myMessageWrap}>
                         <div className={style.text}>{info?.text}</div>
@@ -590,11 +612,22 @@ export default function Home() {
                     >
                       <CopyToClipboard text={info?.text}>
                         <Button
-                          style={{ width: 50, height: 34 }}
+                          style={{ width: 70, height: 34, fontSize: 12 }}
                           colorScheme="teal"
                           variant="solid"
+                          onClick={() => {
+                            const arr: any[] = [...isCopiedList];
+                            arr[index] = true;
+                            setIsCopiedList([...arr]);
+                            const to = setTimeout(() => {
+                              const arr: any[] = [...isCopiedList];
+                              arr[index] = false;
+                              setIsCopiedList([...arr]);
+                              to && clearTimeout(to);
+                            }, 2000);
+                          }}
                         >
-                          复制
+                          {isCopiedList[index] ? "COPIED" : "COPY"}
                         </Button>
                       </CopyToClipboard>
                     </PopoverContent>
