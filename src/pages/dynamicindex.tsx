@@ -488,35 +488,33 @@ export default function Home() {
             direction="row"
             alignItems="center"
             justifyContent="space-between"
-          >
-            <Stack direction="column">
-              <Stack direction="row">
-                <Stack direction="row">
-                  <Badge variant="outline" colorScheme="teal">
-                    {currentRole?.title}
-                  </Badge>
-                </Stack>
-                <Stack direction="row">
-                  <Badge
-                    variant="outline"
-                    colorScheme="teal"
-                    cursor={"pointer"}
-                    onClick={() => {
-                      setIsGPT4(!isGPT4);
-                    }}
-                  >
-                    {isGPT4 ? "GPT4" : "GPT3"}
-                  </Badge>
-                </Stack>
-              </Stack>
-              {isMobile && (
-                <Stack direction="row">
-                  <Button color="teal" variant="link" onClick={onOpen}>
-                    切换助手
-                  </Button>
-                </Stack>
-              )}
+          >{isMobile && (
+            <Stack direction="row">
+              <Button color="teal" variant="link" onClick={onOpen}>
+                切换助手
+              </Button>
             </Stack>
+          )}
+            <Stack direction="row">
+              <Stack direction="row">
+                <Badge variant="outline" colorScheme="teal">
+                  {currentRole?.title}
+                </Badge>
+              </Stack>
+              <Stack direction="row">
+                <Badge
+                  variant="outline"
+                  colorScheme="teal"
+                  cursor={"pointer"}
+                  onClick={() => {
+                    setIsGPT4(!isGPT4);
+                  }}
+                >
+                  {isGPT4 ? "GPT4" : "GPT3"}
+                </Badge>
+              </Stack>
+            </Stack>
+
           </Stack>
         </div>
         <Box
