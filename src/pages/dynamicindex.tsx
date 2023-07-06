@@ -639,8 +639,10 @@ export default function Home() {
           <div className={style.operateWrap}>
             <div className={style.inputWrap}>
               <Textarea
-                variant="outline"
+                variant="filled"
                 marginRight="8px"
+                borderColor='teal.400'
+                focusBorderColor='teal.500'
                 ref={inputRef}
                 value={inputValue}
                 onChange={changeInputValue}
