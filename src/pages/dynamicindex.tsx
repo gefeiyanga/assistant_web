@@ -502,7 +502,14 @@ export default function Home() {
       padding={0}
     >
       {!isMobile && (
-        <aside style={{ overflow: "hidden" }}>{asideChildren()}</aside>
+        <aside
+          style={{
+            overflow: "hidden",
+            borderColor: colorMode === "light" ? "#e6e7e9" : "#3f3f3f",
+          }}
+        >
+          {asideChildren()}
+        </aside>
       )}
 
       <Container
@@ -737,8 +744,8 @@ export default function Home() {
                 marginRight="8px"
                 borderColor={
                   colorMode === "light"
-                    ? "rgb(44, 122, 123)"
-                    : "rgb(129,230,217)"
+                    ? "var(--chakra-colors-teal-500)"
+                    : "rgb(44, 122, 123)"
                 }
                 focusBorderColor="teal.500"
                 ref={inputRef}
@@ -768,7 +775,13 @@ export default function Home() {
               <Button
                 colorScheme="teal"
                 variant="outline"
-                style={{ height: 60 }}
+                style={{
+                  height: 60,
+                  borderColor:
+                    colorMode === "light"
+                      ? "var(--chakra-colors-teal-500)"
+                      : "rgb(44, 122, 123)",
+                }}
                 isLoading={loading}
                 onClick={send}
               >
