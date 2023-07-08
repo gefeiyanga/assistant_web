@@ -388,13 +388,13 @@ export default function Home() {
     }
   };
 
-  const asideChildren = (padding: number) => {
+  const asideChildren = () => {
     return (
       <>
         <Box
-          height={
-            padding ? `calc(100% - 60px - ${padding}px)` : "calc(100% - 60px)"
-          }
+          className={style.drawListWrap}
+          height="calc(100% - 40px)"
+          paddingBottom="20px"
           overflow="auto"
         >
           {ASSISTANTS?.map((item: any, index: number) => (
@@ -433,7 +433,7 @@ export default function Home() {
             </div>
           ))}
         </Box>
-        <Box justifyContent="space-around" display="flex" height="60px">
+        <Box justifyContent="space-around" display="flex" height="40px">
           <Button
             color="teal"
             onClick={() => {
@@ -475,7 +475,7 @@ export default function Home() {
       padding={0}
     >
       {!isMobile && (
-        <aside style={{ overflow: "hidden" }}>{asideChildren(0)}</aside>
+        <aside style={{ overflow: "hidden" }}>{asideChildren()}</aside>
       )}
 
       <Container
@@ -526,8 +526,8 @@ export default function Home() {
         >
           <Drawer placement="right" onClose={onClose} isOpen={isOpen}>
             <DrawerContent>
-              <DrawerBody className={style.drawerBodyWrap}>
-                {asideChildren(8 * 2)}
+              <DrawerBody padding={"14px"} className={style.drawerBodyWrap}>
+                {asideChildren()}
               </DrawerBody>
             </DrawerContent>
           </Drawer>

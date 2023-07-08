@@ -151,9 +151,22 @@
           align-items: center
   
 .drawerBodyWrap
+  .drawListWrap 
+    &::-webkit-scrollbar
+      width: 0px
+      height: 0px
+      display: none
+    &::-webkit-scrollbar-track
+      width: 0px
+      height: 0px
+      display: none
+    &::-webkit-scrollbar-thumb
+      width: 0px
+      height: 0px
+      display: none
   .singleItem 
     width: 100%
-    padding: 0px 10px 0px 10px
+    // padding: 0px 10px 0px 10px
     cursor: default
     .childItem, .notActive
       width: 100%
