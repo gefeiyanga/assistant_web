@@ -3,7 +3,6 @@ import hljs from "highlight.js";
 import "highlight.js/styles/xcode.css";
 import MarkdownIt from "markdown-it";
 import mila from "markdown-it-link-attributes";
-import NextImage from "next/image";
 import { useEffect, useRef, useState } from "react";
 
 import {
@@ -23,7 +22,9 @@ import {
   PopoverContent,
   Divider,
   AbsoluteCenter,
+  IconButton,
 } from "@chakra-ui/react";
+import { SettingsIcon } from "@chakra-ui/icons";
 import autosize from "autosize";
 import DOMPurify from "dompurify";
 import { CopyToClipboard } from "react-copy-to-clipboard";
@@ -515,9 +516,13 @@ export default function Home() {
           >
             {isMobile && (
               <Stack direction="row">
-                <Button color="teal" variant="link" onClick={onOpen}>
-                  切换助手
-                </Button>
+                <IconButton
+                  aria-label="Setting"
+                  icon={<SettingsIcon />}
+                  color="teal"
+                  variant="outline"
+                  onClick={onOpen}
+                />
               </Stack>
             )}
             <Stack direction="row">
