@@ -70,7 +70,7 @@ export default function Home() {
   const [isCopiedList, setIsCopiedList] = useState<any[]>([]);
   const isFinishInputRef = useRef<boolean>(true);
   const inputRef = useRef<any>(null);
-  const [isMobile, setIsMobile] = useState(false);
+  const [isMobile, setIsMobile] = useState(true);
   const [isGPT4, setIsGPT4] = useState(false);
   const toast = useToast({
     position: "top",
