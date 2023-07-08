@@ -100,7 +100,7 @@ export default function Home() {
   };
 
   useEffect(() => {
-    inputRef?.current?.focus();
+    // inputRef?.current?.focus();
     autosize(inputRef.current);
     ro.observe(document.body);
 
@@ -637,9 +637,9 @@ export default function Home() {
           <div className={style.operateWrap}>
             <div className={style.inputWrap}>
               <Textarea
-                variant="filled"
+                variant="outline"
                 marginRight="8px"
-                borderColor="teal.400"
+                borderColor="teal"
                 focusBorderColor="teal.500"
                 ref={inputRef}
                 value={inputValue}
@@ -667,7 +667,7 @@ export default function Home() {
               />
               <Button
                 colorScheme="teal"
-                variant="solid"
+                variant="outline"
                 style={{ height: 60 }}
                 isLoading={loading}
                 onClick={send}
