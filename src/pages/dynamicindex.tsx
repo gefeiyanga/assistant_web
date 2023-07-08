@@ -420,7 +420,10 @@ export default function Home() {
                   <div
                     onClick={() => {
                       setCurrentRole(childItem);
-                      onClose();
+                      const to = setTimeout(() => {
+                        onClose();
+                        to && clearTimeout(to);
+                      }, 300);
                     }}
                   >
                     {childItem?.title}
