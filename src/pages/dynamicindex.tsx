@@ -3,8 +3,7 @@ import hljs from "highlight.js";
 import "highlight.js/styles/xcode.css";
 import MarkdownIt from "markdown-it";
 import mila from "markdown-it-link-attributes";
-import { useEffect, useRef, useState } from "react";
-
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Container,
   DrawerContent,
@@ -23,8 +22,9 @@ import {
   Divider,
   AbsoluteCenter,
   IconButton,
+  useColorMode,
 } from "@chakra-ui/react";
-import { SettingsIcon } from "@chakra-ui/icons";
+import { SettingsIcon, MoonIcon, SunIcon } from "@chakra-ui/icons";
 import autosize from "autosize";
 import DOMPurify from "dompurify";
 import { CopyToClipboard } from "react-copy-to-clipboard";
@@ -74,12 +74,13 @@ export default function Home() {
   const inputRef = useRef<any>(null);
   const [isMobile, setIsMobile] = useState(true);
   const [isGPT4, setIsGPT4] = useState(false);
+  const { colorMode, toggleColorMode } = useColorMode();
+
   const toast = useToast({
     position: "top",
     duration: 3000,
-    variant: "subtle",
     containerStyle: {
-      color: "#333333",
+      // color: "#333333",
       fontWeight: 700,
     },
   });
@@ -101,6 +102,21 @@ export default function Home() {
     setInputValue(e?.target?.value);
   };
 
+  const ro = useMemo(
+    () =>
+      new ResizeObserver((entries) => {
+        for (let entry of entries) {
+          const cr = entry.contentRect;
+          if (cr.width <= 684) {
+            setIsMobile(true);
+          } else {
+            setIsMobile(false);
+          }
+        }
+      }),
+    []
+  );
+
   useEffect(() => {
     // inputRef?.current?.focus();
     autosize(inputRef.current);
@@ -110,18 +126,7 @@ export default function Home() {
       autosize.destroy(inputRef.current);
       ro.unobserve(document.body);
     };
-  }, []);
-
-  const ro = new ResizeObserver((entries) => {
-    for (let entry of entries) {
-      const cr = entry.contentRect;
-      if (cr.width <= 684) {
-        setIsMobile(true);
-      } else {
-        setIsMobile(false);
-      }
-    }
-  });
+  }, [ro]);
 
   async function queryImageFromText(data: any) {
     const response = await fetch(
@@ -170,7 +175,7 @@ export default function Home() {
       toast({
         description: "请先输入内容",
         duration: 3000,
-        variant: "subtle",
+        variant: "solid",
       });
 
       return;
@@ -520,8 +525,18 @@ export default function Home() {
                   aria-label="Setting"
                   icon={<SettingsIcon />}
                   color="teal"
+                  size="sm"
                   variant="outline"
                   onClick={onOpen}
+                />
+                <IconButton
+                  aria-label="theme"
+                  icon={colorMode === "light" ? <MoonIcon /> : <SunIcon />}
+                  color="teal"
+                  size="sm"
+                  variant="outline"
+                  onClick={toggleColorMode}
+                  style={{ marginLeft: 14 }}
                 />
               </Stack>
             )}
@@ -531,7 +546,7 @@ export default function Home() {
                   {currentRole?.title}
                 </Badge>
               </Stack>
-              <Stack direction="row">
+              <Stack style={{ marginLeft: 14 }} direction="row">
                 <Badge
                   variant="outline"
                   colorScheme="teal"
@@ -544,10 +559,24 @@ export default function Home() {
                 </Badge>
               </Stack>
             </Stack>
+            {!isMobile && (
+              <IconButton
+                aria-label="theme"
+                icon={colorMode === "light" ? <MoonIcon /> : <SunIcon />}
+                color="teal"
+                size="sm"
+                variant="outline"
+                onClick={toggleColorMode}
+              />
+            )}
           </Stack>
         </div>
         <Box
-          bgGradient="linear(to-r, pink.50, green.50)"
+          bgGradient={
+            colorMode === "light"
+              ? "linear(to-r, pink.50, green.50)"
+              : "linear(to-r, var(--chakra-colors-gray-800), var(--chakra-colors-gray-900))"
+          }
           className={style.container}
         >
           <Drawer placement="right" onClose={onClose} isOpen={isOpen}>
@@ -578,6 +607,11 @@ export default function Home() {
                     <PopoverTrigger>
                       <div
                         className={style.text}
+                        style={
+                          colorMode === "light"
+                            ? { background: "#e5e9ec" }
+                            : { background: "#2D3748" }
+                        }
                         dangerouslySetInnerHTML={{
                           // __html: info?.text,
                           __html: DOMPurify.sanitize(info?.text, {
@@ -626,7 +660,16 @@ export default function Home() {
                   >
                     <PopoverTrigger>
                       <div className={style.myMessageWrap}>
-                        <div className={style.text}>{info?.text}</div>
+                        <div
+                          className={style.text}
+                          style={
+                            colorMode === "light"
+                              ? { background: "#e5e9ec" }
+                              : { background: "#2D3748" }
+                          }
+                        >
+                          {info?.text}
+                        </div>
                       </div>
                     </PopoverTrigger>
                     <PopoverContent
@@ -665,12 +708,21 @@ export default function Home() {
                   <Divider />
                   <AbsoluteCenter
                     px="4"
-                    style={{
-                      color: "#999",
-                      fontSize: 12,
-                      backgroundImage:
-                        "linear-gradient(to right, var(--chakra-colors-pink-50), var(--chakra-colors-green-50)",
-                    }}
+                    style={
+                      colorMode === "light"
+                        ? {
+                            color: "#999",
+                            fontSize: 12,
+                            backgroundImage:
+                              "linear-gradient(to right, var(--chakra-colors-pink-50), var(--chakra-colors-green-50)",
+                          }
+                        : {
+                            color: "#999",
+                            fontSize: 12,
+                            backgroundImage:
+                              "linear(to-r, var(--chakra-colors-gray-800), var(--chakra-colors-gray-900))",
+                          }
+                    }
                   >
                     {info.value}
                   </AbsoluteCenter>
@@ -683,7 +735,11 @@ export default function Home() {
               <Textarea
                 variant="outline"
                 marginRight="8px"
-                borderColor="teal"
+                borderColor={
+                  colorMode === "light"
+                    ? "rgb(44, 122, 123)"
+                    : "rgb(129,230,217)"
+                }
                 focusBorderColor="teal.500"
                 ref={inputRef}
                 value={inputValue}
