@@ -9,7 +9,6 @@ import { useEffect, useRef, useState } from "react";
 import {
   Container,
   DrawerContent,
-  DrawerHeader,
   DrawerBody,
   Drawer,
   Box,
@@ -22,13 +21,15 @@ import {
   Popover,
   PopoverTrigger,
   PopoverContent,
+  Divider,
+  AbsoluteCenter,
 } from "@chakra-ui/react";
 import autosize from "autosize";
 import DOMPurify from "dompurify";
 import { CopyToClipboard } from "react-copy-to-clipboard";
 import { saveAs } from "file-saver";
+import dayjs from "dayjs";
 
-import AI_AVATAR from "public/icons/ai.png";
 import ASSISTANTS from "@/configs/assistants";
 import useCopyCode from "@/hooks/useCopyCode";
 import { scrollToBottom } from "@/utils/util";
@@ -175,13 +176,33 @@ export default function Home() {
     }
     inputRef?.current?.blur();
     setLoading(true);
-    const newList = [
-      ...conversationList,
-      {
-        text: inputValue,
-        owner: "me",
-      },
-    ];
+    let newList: any[] = [];
+    if (
+      conversationList?.length > 0 &&
+      conversationList?.filter(({ owner }: any) => owner !== "time")?.length %
+        6 ===
+        0
+    ) {
+      newList = [
+        ...conversationList,
+        {
+          owner: "time",
+          value: dayjs().format("YYYY-MM-DD HH:mm:ss"),
+        },
+        {
+          text: inputValue,
+          owner: "me",
+        },
+      ];
+    } else {
+      newList = [
+        ...conversationList,
+        {
+          text: inputValue,
+          owner: "me",
+        },
+      ];
+    }
     setConversationList([...newList]);
     scrollToBottom();
     localStorage.setItem("conversationList", JSON.stringify([...newList]));
@@ -590,7 +611,7 @@ export default function Home() {
                     </PopoverContent>
                   </Popover>
                 </div>
-              ) : (
+              ) : info?.owner === "me" ? (
                 <div key={info?.id ?? 0 + index} className={style.meInfoWrap}>
                   <span className={style.avatar}>😁</span>
                   <Popover
@@ -634,6 +655,21 @@ export default function Home() {
                     </PopoverContent>
                   </Popover>
                 </div>
+              ) : (
+                <Box key={info.value} position="relative" padding="10">
+                  <Divider />
+                  <AbsoluteCenter
+                    px="4"
+                    style={{
+                      color: "#999",
+                      fontSize: 12,
+                      backgroundImage:
+                        "linear-gradient(to right, var(--chakra-colors-pink-50), var(--chakra-colors-green-50)",
+                    }}
+                  >
+                    {info.value}
+                  </AbsoluteCenter>
+                </Box>
               )
             )}
           </div>
