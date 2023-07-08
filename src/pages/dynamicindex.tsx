@@ -488,13 +488,14 @@ export default function Home() {
             direction="row"
             alignItems="center"
             justifyContent="space-between"
-          >{isMobile && (
-            <Stack direction="row">
-              <Button color="teal" variant="link" onClick={onOpen}>
-                切换助手
-              </Button>
-            </Stack>
-          )}
+          >
+            {isMobile && (
+              <Stack direction="row">
+                <Button color="teal" variant="link" onClick={onOpen}>
+                  切换助手
+                </Button>
+              </Stack>
+            )}
             <Stack direction="row">
               <Stack direction="row">
                 <Badge variant="outline" colorScheme="teal">
@@ -514,7 +515,6 @@ export default function Home() {
                 </Badge>
               </Stack>
             </Stack>
-
           </Stack>
         </div>
         <Box
@@ -542,7 +542,7 @@ export default function Home() {
                   /> */}
                   <span className={style.avatar}>🤖️</span>
                   <Popover
-                    trigger="hover"
+                    trigger={isMobile ? "click" : "hover"}
                     placement={isMobile ? "top-start" : "right-end"}
                     closeDelay={300}
                   >
@@ -591,8 +591,8 @@ export default function Home() {
                 <div key={info?.id ?? 0 + index} className={style.meInfoWrap}>
                   <span className={style.avatar}>😁</span>
                   <Popover
-                    trigger="hover"
-                    placement="left-end"
+                    trigger={isMobile ? "click" : "hover"}
+                    placement={isMobile ? "top-start" : "left-end"}
                     closeDelay={300}
                   >
                     <PopoverTrigger>
@@ -639,8 +639,8 @@ export default function Home() {
               <Textarea
                 variant="filled"
                 marginRight="8px"
-                borderColor='teal.400'
-                focusBorderColor='teal.500'
+                borderColor="teal.400"
+                focusBorderColor="teal.500"
                 ref={inputRef}
                 value={inputValue}
                 onChange={changeInputValue}
