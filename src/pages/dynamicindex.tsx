@@ -393,7 +393,7 @@ export default function Home() {
       <>
         <Box
           height={
-            padding ? `calc(100vh - 60px - ${padding}px)` : "calc(100vh - 60px)"
+            padding ? `calc(100% - 60px - ${padding}px)` : "calc(100% - 60px)"
           }
           overflow="auto"
         >
@@ -467,7 +467,7 @@ export default function Home() {
       position="relative"
       maxWidth="100vw"
       width="100vw"
-      height="calc(var(--vh, 1vh) * 100)"
+      height="100%"
       margin={0}
       padding={0}
     >
@@ -479,7 +479,7 @@ export default function Home() {
         className={style.contentWrap}
         maxWidth={isMobile ? "100%" : "calc(100vw - 240px)"}
         width={isMobile ? "100%" : "calc(100vw - 240px)"}
-        height="calc(var(--vh, 1vh) * 100)"
+        height="100%"
         margin={0}
         padding={0}
       >
