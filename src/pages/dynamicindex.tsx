@@ -23,6 +23,8 @@ import {
   AbsoluteCenter,
   IconButton,
   useColorMode,
+  InputGroup,
+  InputLeftElement,
 } from "@chakra-ui/react";
 import { SettingsIcon, MoonIcon, SunIcon } from "@chakra-ui/icons";
 import autosize from "autosize";
@@ -34,6 +36,7 @@ import dayjs from "dayjs";
 import ASSISTANTS from "@/configs/assistants";
 import useCopyCode from "@/hooks/useCopyCode";
 import { scrollToBottom } from "@/utils/util";
+import SpeechRecognition from "@/components/Microphone";
 
 import style from "./index.module.sass";
 
@@ -74,6 +77,8 @@ export default function Home() {
   const inputRef = useRef<any>(null);
   const [isMobile, setIsMobile] = useState(true);
   const [isGPT4, setIsGPT4] = useState(false);
+  const [interimTranscript, setInterimTranscript] = useState(false);
+  const [isListening, setIsListening] = useState(false);
   const { colorMode, toggleColorMode } = useColorMode();
 
   const toast = useToast({
@@ -171,13 +176,20 @@ export default function Home() {
     if (loading) {
       return;
     }
+    if (isListening) {
+      toast({
+        description: "请先停止录音",
+        duration: 3000,
+        variant: "solid",
+      });
+      return;
+    }
     if (!inputValue?.trim()?.length) {
       toast({
         description: "请先输入内容",
         duration: 3000,
         variant: "solid",
       });
-
       return;
     }
     inputRef?.current?.blur();
@@ -739,39 +751,63 @@ export default function Home() {
           </div>
           <div className={style.operateWrap}>
             <div className={style.inputWrap}>
-              <Textarea
-                variant="outline"
-                marginRight="8px"
-                borderColor={
-                  colorMode === "light"
-                    ? "var(--chakra-colors-teal-500)"
-                    : "rgb(44, 122, 123)"
-                }
-                focusBorderColor="teal.500"
-                ref={inputRef}
-                value={inputValue}
-                onChange={changeInputValue}
-                autoComplete="off"
-                onCompositionStart={(e: any) => {
-                  isFinishInputRef.current = false;
-                }}
-                overflow="auto"
-                maxHeight="60px"
-                minHeight="60px"
-                onCompositionEnd={(e: any) => {
-                  isFinishInputRef.current = true;
-                }}
-                onKeyDown={(e: any) => {
-                  if (
-                    isFinishInputRef.current &&
-                    !e.shiftKey &&
-                    e.key?.toLowerCase() === "enter"
-                  ) {
-                    e?.preventDefault();
-                    send();
-                  }
-                }}
+              <SpeechRecognition
+                setInputValue={setInputValue}
+                setInterimTranscript={setInterimTranscript}
+                isListening={isListening}
+                setIsListening={setIsListening}
               />
+              <InputGroup>
+                <Textarea
+                  variant="outline"
+                  marginRight="8px"
+                  borderColor={
+                    colorMode === "light"
+                      ? "var(--chakra-colors-teal-500)"
+                      : "rgb(44, 122, 123)"
+                  }
+                  zIndex={isListening ? 1 : 3}
+                  focusBorderColor="teal.500"
+                  ref={inputRef}
+                  value={inputValue}
+                  onChange={changeInputValue}
+                  autoComplete="off"
+                  onCompositionStart={(e: any) => {
+                    isFinishInputRef.current = false;
+                  }}
+                  overflow="auto"
+                  maxHeight="60px"
+                  minHeight="60px"
+                  onCompositionEnd={(e: any) => {
+                    isFinishInputRef.current = true;
+                  }}
+                  onKeyDown={(e: any) => {
+                    if (
+                      isFinishInputRef.current &&
+                      !e.shiftKey &&
+                      e.key?.toLowerCase() === "enter"
+                    ) {
+                      e?.preventDefault();
+                      send();
+                    }
+                  }}
+                ></Textarea>
+                <InputLeftElement
+                  className={style.leftElementWrap}
+                  width="100%"
+                  style={{
+                    padding: "8px 17px 8px 17px",
+                    minHeight: "60px",
+                    height: "60px",
+                    overflowY: "auto",
+                    textAlign: "left",
+                    display: "block",
+                    lineHeight: "22px",
+                  }}
+                >
+                  {interimTranscript}
+                </InputLeftElement>
+              </InputGroup>
               <Button
                 colorScheme="teal"
                 variant="outline"
