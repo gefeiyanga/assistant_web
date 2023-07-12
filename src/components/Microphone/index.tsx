@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { IconButton, useToast } from "@chakra-ui/react";
-import { Icon } from "@chakra-ui/react";
-import { AiOutlineAudio, AiOutlineAudioMuted } from "react-icons/ai";
+import { Icon, useColorMode } from "@chakra-ui/react";
+import { BiSolidMicrophoneAlt, BiStopCircle } from "react-icons/bi";
 
 const SpeechRecognition = ({
   setInputValue,
@@ -10,6 +10,7 @@ const SpeechRecognition = ({
   setIsListening,
 }: any) => {
   const [recognition, setRecognition] = useState<any>(null);
+  const { colorMode, toggleColorMode } = useColorMode();
 
   const toast = useToast({
     position: "top",
@@ -114,9 +115,9 @@ const SpeechRecognition = ({
         aria-label="microphone"
         icon={
           isListening ? (
-            <Icon as={AiOutlineAudioMuted} />
+            <Icon as={BiStopCircle} fontSize={22} />
           ) : (
-            <Icon as={AiOutlineAudio} />
+            <Icon as={BiSolidMicrophoneAlt} fontSize={22} />
           )
         }
         height="60px"
@@ -125,6 +126,12 @@ const SpeechRecognition = ({
         color="teal"
         size="lg"
         variant="outline"
+        style={{
+          borderColor:
+            colorMode === "light"
+              ? "var(--chakra-colors-teal-500)"
+              : "rgb(44, 122, 123)",
+        }}
         onClick={toggleListening}
       ></IconButton>
     </div>
