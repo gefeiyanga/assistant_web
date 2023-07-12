@@ -39,6 +39,7 @@ const SpeechRecognition = ({
         duration: 3000,
         variant: "solid",
       });
+      setIsListening(true);
       setInputValue("");
     };
 
@@ -60,7 +61,6 @@ const SpeechRecognition = ({
 
     recognitionInstance.start();
     setRecognition(recognitionInstance);
-    setIsListening(true);
   };
 
   const stopListening = () => {
