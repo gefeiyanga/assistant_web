@@ -267,7 +267,7 @@ export default function Home() {
 
     let id = "";
     for (let i = newList?.length - 1; i >= 0; i--) {
-      if (newList[i]?.owner === "ai") {
+      if (newList[i]?.owner === "ai" && newList[i]?.id?.length) {
         id = newList[i]?.id || "";
         break;
       }
