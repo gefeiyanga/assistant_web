@@ -33,7 +33,7 @@ const SpeechRecognition = ({
     recognitionInstance.interimResults = true;
     recognitionInstance.continuous = true;
 
-    recognition.onstart = function () {
+    recognitionInstance.onstart = function () {
       toast({
         description: "正在收音～",
         duration: 3000,
