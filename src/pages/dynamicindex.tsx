@@ -756,6 +756,7 @@ export default function Home() {
                 setInterimTranscript={setInterimTranscript}
                 isListening={isListening}
                 setIsListening={setIsListening}
+                zIndex={isListening ? 3 : 1}
               />
               <InputGroup>
                 <Textarea
