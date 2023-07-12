@@ -802,7 +802,7 @@ export default function Home() {
                     height: "60px",
                     overflowY: "auto",
                     textAlign: "left",
-                    display: "block",
+                    display: isListening ? "block" : "none",
                     lineHeight: "22px",
                   }}
                 >
@@ -815,6 +815,10 @@ export default function Home() {
                 style={{
                   height: 60,
                   borderColor:
+                    colorMode === "light"
+                      ? "var(--chakra-colors-teal-500)"
+                      : "rgb(44, 122, 123)",
+                  color:
                     colorMode === "light"
                       ? "var(--chakra-colors-teal-500)"
                       : "rgb(44, 122, 123)",
