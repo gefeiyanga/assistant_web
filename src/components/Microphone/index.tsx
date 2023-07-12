@@ -58,6 +58,30 @@ const SpeechRecognition = ({
       setInputValue(final_transcript);
       setInterimTranscript(interimTranscript);
     };
+    recognition.onerror = function (event: any) {
+      if (event.error === "no-speech") {
+        toast({
+          description: "没有检测到麦克风～",
+          duration: 3000,
+          variant: "solid",
+        });
+      } else if (event.error === "audio-capture") {
+        console.log("Audio capture permission denied");
+        toast({
+          description: "没有录音权限，请开启～",
+          duration: 3000,
+          variant: "solid",
+        });
+        // 在这里处理用户拒绝录音权限的情况
+      } else if (event.error === "not-allowed") {
+        console.log("Speech recognition not allowed by the user");
+        toast({
+          description: "您已拒绝了录音权限，请刷新页面重新授权～",
+          duration: 3000,
+          variant: "solid",
+        });
+      }
+    };
 
     recognitionInstance.start();
     setRecognition(recognitionInstance);
