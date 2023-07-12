@@ -58,7 +58,7 @@ const SpeechRecognition = ({
       setInputValue(final_transcript);
       setInterimTranscript(interimTranscript);
     };
-    recognition.onerror = function (event: any) {
+    recognitionInstance.onerror = function (event: any) {
       if (event.error === "no-speech") {
         toast({
           description: "没有检测到麦克风～",

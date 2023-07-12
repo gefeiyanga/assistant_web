@@ -796,7 +796,7 @@ export default function Home() {
                   className={style.leftElementWrap}
                   width="100%"
                   style={{
-                    padding: "8px 17px 8px 17px",
+                    padding: "9px 17px 9px 17px",
                     minHeight: "60px",
                     height: "60px",
                     overflowY: "auto",
