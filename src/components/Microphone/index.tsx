@@ -25,17 +25,22 @@ const SpeechRecognition = ({
       console.error("Your browser does not support the Web Speech API");
       return;
     }
-    toast({
-      description: "正在收音～",
-      duration: 3000,
-      variant: "solid",
-    });
-    setInputValue("");
-    let final_transcript = "";
 
     const recognitionInstance = new (window as any).webkitSpeechRecognition();
+
+    let final_transcript = "";
+
     recognitionInstance.interimResults = true;
     recognitionInstance.continuous = true;
+
+    recognition.onstart = function () {
+      toast({
+        description: "正在收音～",
+        duration: 3000,
+        variant: "solid",
+      });
+      setInputValue("");
+    };
 
     recognitionInstance.onresult = (event: any) => {
       let interimTranscript = "";
