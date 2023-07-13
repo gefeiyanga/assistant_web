@@ -25,6 +25,12 @@ import {
   useColorMode,
   InputGroup,
   InputLeftElement,
+  AlertDialog,
+  AlertDialogOverlay,
+  AlertDialogContent,
+  AlertDialogBody,
+  AlertDialogFooter,
+  AlertDialogHeader,
 } from "@chakra-ui/react";
 import { SettingsIcon, MoonIcon, SunIcon } from "@chakra-ui/icons";
 import autosize from "autosize";
@@ -80,6 +86,12 @@ export default function Home() {
   const [interimTranscript, setInterimTranscript] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const { colorMode, toggleColorMode } = useColorMode();
+  const cancelRef = useRef<any>();
+  const {
+    isOpen: isOpenDeleteRecord,
+    onOpen: onOpenDeleteRecord,
+    onClose: onCloseDeleteRecord,
+  } = useDisclosure();
 
   const toast = useToast({
     position: "top",
@@ -492,8 +504,15 @@ export default function Home() {
           <Button
             color="teal"
             onClick={() => {
-              localStorage.removeItem("conversationList");
-              setConversationList([]);
+              if (conversationList?.length > 0) {
+                onOpenDeleteRecord();
+              } else {
+                toast({
+                  description: "暂无记录",
+                  duration: 3000,
+                  variant: "solid",
+                });
+              }
             }}
           >
             清除聊天记录
@@ -513,6 +532,43 @@ export default function Home() {
       margin={0}
       padding={0}
     >
+      <AlertDialog
+        leastDestructiveRef={cancelRef}
+        isOpen={isOpenDeleteRecord}
+        onClose={onCloseDeleteRecord}
+      >
+        <AlertDialogOverlay>
+          <AlertDialogContent>
+            <AlertDialogHeader fontSize="lg" fontWeight="bold">
+              删除确认
+            </AlertDialogHeader>
+
+            <AlertDialogBody>确定要删除所有聊天记录吗？</AlertDialogBody>
+
+            <AlertDialogFooter>
+              <Button ref={cancelRef} onClick={onCloseDeleteRecord}>
+                取消
+              </Button>
+              <Button
+                colorScheme="red"
+                onClick={() => {
+                  localStorage.removeItem("conversationList");
+                  setConversationList([]);
+                  onCloseDeleteRecord();
+                  toast({
+                    description: "删除成功",
+                    duration: 3000,
+                    variant: "solid",
+                  });
+                }}
+                ml={3}
+              >
+                确认
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
       {!isMobile && (
         <aside
           style={{
@@ -607,78 +663,24 @@ export default function Home() {
           </Drawer>
 
           <div className={style.infoListWrap} id="infoListWrap">
-            {conversationList?.map((info: any, index: any) =>
-              info?.owner === "ai" ? (
-                <div key={info?.id ?? 0 + index} className={style.aiInfoWrap}>
-                  {/* <NextImage
+            {conversationList?.length > 0 ? (
+              conversationList?.map((info: any, index: any) =>
+                info?.owner === "ai" ? (
+                  <div key={info?.id ?? 0 + index} className={style.aiInfoWrap}>
+                    {/* <NextImage
                     className={style.avatar}
                     src={AI_AVATAR}
                     width={34}
                     height={34}
                     alt=""
                   /> */}
-                  <span className={style.avatar}>🤖️</span>
-                  <Popover
-                    trigger={isMobile ? "click" : "hover"}
-                    placement={isMobile ? "top-start" : "right-end"}
-                    closeDelay={300}
-                  >
-                    <PopoverTrigger>
-                      <div
-                        className={style.text}
-                        style={
-                          colorMode === "light"
-                            ? { background: "#e5e9ec" }
-                            : { background: "#2D3748" }
-                        }
-                        dangerouslySetInnerHTML={{
-                          // __html: info?.text,
-                          __html: DOMPurify.sanitize(info?.text, {
-                            ALLOW_UNKNOWN_PROTOCOLS: true,
-                          }),
-                        }}
-                      ></div>
-                    </PopoverTrigger>
-                    <PopoverContent
-                      style={{
-                        background: "transparent",
-                        border: "0px",
-                        boxShadow: "0px 0px 0px",
-                      }}
+                    <span className={style.avatar}>🤖️</span>
+                    <Popover
+                      trigger={isMobile ? "click" : "hover"}
+                      placement={isMobile ? "top-start" : "right-end"}
+                      closeDelay={300}
                     >
-                      <CopyToClipboard text={info?.originText}>
-                        <Button
-                          style={{ width: 70, height: 34, fontSize: 12 }}
-                          colorScheme="teal"
-                          variant="solid"
-                          onClick={() => {
-                            const arr: any[] = [...isCopiedList];
-                            arr[index] = true;
-                            setIsCopiedList([...arr]);
-                            const to = setTimeout(() => {
-                              const arr: any[] = [...isCopiedList];
-                              arr[index] = false;
-                              setIsCopiedList([...arr]);
-                              to && clearTimeout(to);
-                            }, 2000);
-                          }}
-                        >
-                          {isCopiedList[index] ? "COPIED" : "COPY"}
-                        </Button>
-                      </CopyToClipboard>
-                    </PopoverContent>
-                  </Popover>
-                </div>
-              ) : info?.owner === "me" ? (
-                <div key={info?.id ?? 0 + index} className={style.meInfoWrap}>
-                  <span className={style.avatar}>😁</span>
-                  <Popover
-                    trigger={isMobile ? "click" : "hover"}
-                    placement={isMobile ? "top-start" : "left-end"}
-                    closeDelay={300}
-                  >
-                    <PopoverTrigger>
-                      <div className={style.myMessageWrap}>
+                      <PopoverTrigger>
                         <div
                           className={style.text}
                           style={
@@ -686,67 +688,127 @@ export default function Home() {
                               ? { background: "#e5e9ec" }
                               : { background: "#2D3748" }
                           }
-                        >
-                          {info?.text}
-                        </div>
-                      </div>
-                    </PopoverTrigger>
-                    <PopoverContent
-                      style={{
-                        background: "transparent",
-                        border: "0px",
-                        boxShadow: "0px 0px 0px",
-                        width: "auto",
-                      }}
-                    >
-                      <CopyToClipboard text={info?.text}>
-                        <Button
-                          style={{ width: 70, height: 34, fontSize: 12 }}
-                          colorScheme="teal"
-                          variant="solid"
-                          onClick={() => {
-                            const arr: any[] = [...isCopiedList];
-                            arr[index] = true;
-                            setIsCopiedList([...arr]);
-                            const to = setTimeout(() => {
-                              const arr: any[] = [...isCopiedList];
-                              arr[index] = false;
-                              setIsCopiedList([...arr]);
-                              to && clearTimeout(to);
-                            }, 2000);
+                          dangerouslySetInnerHTML={{
+                            // __html: info?.text,
+                            __html: DOMPurify.sanitize(info?.text, {
+                              ALLOW_UNKNOWN_PROTOCOLS: true,
+                            }),
                           }}
-                        >
-                          {isCopiedList[index] ? "COPIED" : "COPY"}
-                        </Button>
-                      </CopyToClipboard>
-                    </PopoverContent>
-                  </Popover>
-                </div>
-              ) : (
-                <Box key={info.value} position="relative" padding="10">
-                  <Divider />
-                  <AbsoluteCenter
-                    px="4"
-                    style={
-                      colorMode === "light"
-                        ? {
-                            color: "#999",
-                            fontSize: 12,
-                            backgroundImage:
-                              "linear-gradient(to right, var(--chakra-colors-pink-50), var(--chakra-colors-green-50)",
-                          }
-                        : {
-                            color: "#999",
-                            fontSize: 12,
-                            backgroundImage:
-                              "linear(to-r, var(--chakra-colors-gray-800), var(--chakra-colors-gray-900))",
-                          }
-                    }
-                  >
-                    {info.value}
-                  </AbsoluteCenter>
-                </Box>
+                        ></div>
+                      </PopoverTrigger>
+                      <PopoverContent
+                        style={{
+                          background: "transparent",
+                          border: "0px",
+                          boxShadow: "0px 0px 0px",
+                        }}
+                      >
+                        <CopyToClipboard text={info?.originText}>
+                          <Button
+                            style={{ width: 70, height: 34, fontSize: 12 }}
+                            colorScheme="teal"
+                            variant="solid"
+                            onClick={() => {
+                              const arr: any[] = [...isCopiedList];
+                              arr[index] = true;
+                              setIsCopiedList([...arr]);
+                              const to = setTimeout(() => {
+                                const arr: any[] = [...isCopiedList];
+                                arr[index] = false;
+                                setIsCopiedList([...arr]);
+                                to && clearTimeout(to);
+                              }, 2000);
+                            }}
+                          >
+                            {isCopiedList[index] ? "COPIED" : "COPY"}
+                          </Button>
+                        </CopyToClipboard>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                ) : info?.owner === "me" ? (
+                  <div key={info?.id ?? 0 + index} className={style.meInfoWrap}>
+                    <span className={style.avatar}>😁</span>
+                    <Popover
+                      trigger={isMobile ? "click" : "hover"}
+                      placement={isMobile ? "top-start" : "left-end"}
+                      closeDelay={300}
+                    >
+                      <PopoverTrigger>
+                        <div className={style.myMessageWrap}>
+                          <div
+                            className={style.text}
+                            style={
+                              colorMode === "light"
+                                ? { background: "#e5e9ec" }
+                                : { background: "#2D3748" }
+                            }
+                          >
+                            {info?.text}
+                          </div>
+                        </div>
+                      </PopoverTrigger>
+                      <PopoverContent
+                        style={{
+                          background: "transparent",
+                          border: "0px",
+                          boxShadow: "0px 0px 0px",
+                          width: "auto",
+                        }}
+                      >
+                        <CopyToClipboard text={info?.text}>
+                          <Button
+                            style={{ width: 70, height: 34, fontSize: 12 }}
+                            colorScheme="teal"
+                            variant="solid"
+                            onClick={() => {
+                              const arr: any[] = [...isCopiedList];
+                              arr[index] = true;
+                              setIsCopiedList([...arr]);
+                              const to = setTimeout(() => {
+                                const arr: any[] = [...isCopiedList];
+                                arr[index] = false;
+                                setIsCopiedList([...arr]);
+                                to && clearTimeout(to);
+                              }, 2000);
+                            }}
+                          >
+                            {isCopiedList[index] ? "COPIED" : "COPY"}
+                          </Button>
+                        </CopyToClipboard>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                ) : (
+                  <Box key={info.value} position="relative" padding="10">
+                    <Divider />
+                    <AbsoluteCenter
+                      px="4"
+                      style={
+                        colorMode === "light"
+                          ? {
+                              color: "#999",
+                              fontSize: 12,
+                              backgroundImage:
+                                "linear-gradient(to right, var(--chakra-colors-pink-50), var(--chakra-colors-green-50)",
+                            }
+                          : {
+                              color: "#999",
+                              fontSize: 12,
+                              backgroundImage:
+                                "linear(to-r, var(--chakra-colors-gray-800), var(--chakra-colors-gray-900))",
+                            }
+                      }
+                    >
+                      {info.value}
+                    </AbsoluteCenter>
+                  </Box>
+                )
               )
+            ) : (
+              <Box textAlign="center" margin={"50% auto"} color="#999999">
+                有任何问题尽管问我～
+              </Box>
             )}
           </div>
           <div className={style.operateWrap}>
