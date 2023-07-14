@@ -159,6 +159,20 @@ export default function Home() {
     const result = await response.blob();
     return result;
   }
+  // Clipdrop API
+  async function queryClipdropImageFromText(data: any) {
+    const response = await fetch("https://clipdrop-api.co/text-to-image/v1", {
+      headers: {
+        "x-api-key":
+          "43816edcf9adfdb93dd8f9438e1fe3045d7b29c8c6d5fd62b64c92853b6973e5ecb3d7dd5c58c18dd0f5969ab0da0895",
+      },
+      method: "POST",
+      body: data,
+    });
+
+    const result = await response.arrayBuffer();
+    return result;
+  }
 
   async function translator(data: any) {
     let formBody = new URLSearchParams();
@@ -241,12 +255,17 @@ export default function Home() {
 
     if (currentRole?.type === "text-to-image") {
       const translatedQ = await translator({ q: question });
-      const inputs = translatedQ?.trans_result[0].dst + ", mdjrny-v4 style";
+      // const inputs = translatedQ?.trans_result[0].dst + ", mdjrny-v4 style";
+      const form = new FormData();
+      form.append("prompt", translatedQ?.trans_result[0].dst);
       try {
-        queryImageFromText({ inputs }).then(async (response) => {
+        queryClipdropImageFromText(form).then(async (response) => {
           // Use image
           const image = new (Image as any)(256, 256);
-          const url = await URL.createObjectURL(response);
+
+          const arrayBufferView = new Uint8Array(response);
+          const blob = new Blob([arrayBufferView], { type: "image/jpeg" });
+          const url = await URL.createObjectURL(blob);
           image["src"] = url;
           const img = `<img src=${url} width=256 height=256 />`;
           setConversationList([
