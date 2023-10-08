@@ -149,6 +149,7 @@ export default function Home() {
     onOpen: onOpenDeleteRecord,
     onClose: onCloseDeleteRecord,
   } = useDisclosure();
+  const controllerRef = useRef<any>();
 
   const toast = useToast({
     position: "top",
@@ -170,7 +171,7 @@ export default function Home() {
     setIsCopiedList([]);
   }, []);
 
-  useCopyCode(conversationList);
+  useCopyCode(conversationList, toast);
 
   const changeInputValue = (e: any) => {
     setInputValue(e?.target?.value);
@@ -361,9 +362,16 @@ export default function Home() {
       }
     }
 
+    controllerRef.current = new AbortController();
+    const signal = controllerRef.current.signal;
+    let text = "",
+      originText = "";
+
+    let prevData;
     try {
       const response: any = await fetch("/chat", {
         method: "POST",
+        signal,
         headers: {
           "Content-Type": "application/json;charset=UTF-8",
         },
@@ -378,10 +386,6 @@ export default function Home() {
       // instead of response.json() and other methods
       const reader = response.body.getReader();
       let decoder = new TextDecoder("utf-8");
-      let text = "",
-        originText = "";
-
-      let prevData;
 
       // infinite loop while the body is downloading
       while (true) {
@@ -491,24 +495,51 @@ export default function Home() {
     } catch (error) {
       console.log(error);
 
-      setConversationList([
-        ...newList,
-        {
-          owner: "ai",
-          text: DIETEXT,
-        },
-      ]);
-      scrollToBottom();
-      localStorage.setItem(
-        "conversationList",
-        JSON.stringify([
+      if (!text?.trim()?.length) {
+        setConversationList([
           ...newList,
           {
             owner: "ai",
             text: DIETEXT,
           },
-        ])
-      );
+        ]);
+        scrollToBottom();
+        localStorage.setItem(
+          "conversationList",
+          JSON.stringify([
+            ...newList,
+            {
+              owner: "ai",
+              text: DIETEXT,
+            },
+          ])
+        );
+      } else {
+        setConversationList([
+          ...newList,
+          {
+            ...prevData,
+            owner: "ai",
+            text,
+            done: true,
+            originText,
+          },
+        ]);
+        scrollToBottom();
+        localStorage.setItem(
+          "conversationList",
+          JSON.stringify([
+            ...newList,
+            {
+              ...prevData,
+              owner: "ai",
+              text,
+              done: true,
+              originText,
+            },
+          ])
+        );
+      }
 
       setLoading(false);
       inputRef?.current?.focus();
@@ -753,7 +784,7 @@ export default function Home() {
                     <span className={style.avatar}>🤖️</span>
                     <Popover
                       trigger={isMobile ? "click" : "hover"}
-                      placement={isMobile ? "top-start" : "right-end"}
+                      placement={isMobile ? "top-start" : "right-start"}
                       closeDelay={300}
                     >
                       <PopoverTrigger>
@@ -887,6 +918,33 @@ export default function Home() {
               </Box>
             )}
           </div>
+          {loading && (
+            <div className={style.diyWrap}>
+              <Button
+                colorScheme="teal"
+                variant="outline"
+                style={{
+                  position: "absolute",
+                  right: 0,
+                  height: 32,
+                  fontSize: 12,
+                  borderColor:
+                    colorMode === "light"
+                      ? "var(--chakra-colors-teal-500)"
+                      : "rgb(44, 122, 123)",
+                  color:
+                    colorMode === "light"
+                      ? "var(--chakra-colors-teal-500)"
+                      : "rgb(44, 122, 123)",
+                }}
+                onClick={() => {
+                  controllerRef.current?.abort();
+                }}
+              >
+                停止
+              </Button>
+            </div>
+          )}
           <div className={style.operateWrap}>
             <div className={style.inputWrap}>
               <SpeechRecognition
