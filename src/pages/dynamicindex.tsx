@@ -1,5 +1,33 @@
 import mdKatex from "@traptitech/markdown-it-katex";
-import hljs from "highlight.js";
+import hljs from "highlight.js/lib/core";
+import c from "highlight.js/lib/languages/c";
+import cpp from "highlight.js/lib/languages/cpp";
+import csharp from "highlight.js/lib/languages/csharp";
+import css from "highlight.js/lib/languages/css";
+import go from "highlight.js/lib/languages/go";
+import javascript from "highlight.js/lib/languages/javascript";
+import java from "highlight.js/lib/languages/java";
+import json from "highlight.js/lib/languages/json";
+import kotlin from "highlight.js/lib/languages/kotlin";
+import latex from "highlight.js/lib/languages/latex";
+import less from "highlight.js/lib/languages/less";
+import django from "highlight.js/lib/languages/django";
+import markdown from "highlight.js/lib/languages/markdown";
+import matlab from "highlight.js/lib/languages/matlab";
+import php from "highlight.js/lib/languages/php";
+import python from "highlight.js/lib/languages/python";
+import nginx from "highlight.js/lib/languages/nginx";
+import lua from "highlight.js/lib/languages/lua";
+import ruby from "highlight.js/lib/languages/ruby";
+import rust from "highlight.js/lib/languages/rust";
+import scss from "highlight.js/lib/languages/scss";
+import sql from "highlight.js/lib/languages/sql";
+import stylus from "highlight.js/lib/languages/stylus";
+import shell from "highlight.js/lib/languages/shell";
+import swift from "highlight.js/lib/languages/swift";
+import vim from "highlight.js/lib/languages/vim";
+import xml from "highlight.js/lib/languages/xml";
+import yaml from "highlight.js/lib/languages/yaml";
 import "highlight.js/styles/xcode.css";
 import MarkdownIt from "markdown-it";
 import mila from "markdown-it-link-attributes";
@@ -53,6 +81,35 @@ const DIETEXT = "Please wait a minute";
 function highlightBlock(str: string, lang?: string) {
   return `<pre style="white-space: pre-wrap" class="code-block-wrapper ${style["code-block-wrapper"]}"><div class="${style["code-block-header"]}"><span class="${style["code-block-header__lang"]}">${lang}</span><span class="code-block-header__copy ${style["code-block-header__copy"]}">复制</span></div><code class="hljs code-block-body ${lang}">${str}</code></pre>`;
 }
+
+hljs.registerLanguage("javascript", javascript);
+hljs.registerLanguage("c", c);
+hljs.registerLanguage("cpp", cpp);
+hljs.registerLanguage("csharp", csharp);
+hljs.registerLanguage("css", css);
+hljs.registerLanguage("go", go);
+hljs.registerLanguage("java", java);
+hljs.registerLanguage("json", json);
+hljs.registerLanguage("kotlin", kotlin);
+hljs.registerLanguage("latex", latex);
+hljs.registerLanguage("less", less);
+hljs.registerLanguage("django", django);
+hljs.registerLanguage("markdown", markdown);
+hljs.registerLanguage("matlab", matlab);
+hljs.registerLanguage("php", php);
+hljs.registerLanguage("python", python);
+hljs.registerLanguage("nginx", nginx);
+hljs.registerLanguage("lua", lua);
+hljs.registerLanguage("ruby", ruby);
+hljs.registerLanguage("rust", rust);
+hljs.registerLanguage("scss", scss);
+hljs.registerLanguage("sql", sql);
+hljs.registerLanguage("stylus", stylus);
+hljs.registerLanguage("shell", shell);
+hljs.registerLanguage("swift", swift);
+hljs.registerLanguage("vim", vim);
+hljs.registerLanguage("xml", xml);
+hljs.registerLanguage("yaml", yaml);
 
 const mdi = new MarkdownIt({
   linkify: true,
