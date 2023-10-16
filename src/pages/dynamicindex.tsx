@@ -1,35 +1,7 @@
-import mdKatex from "@traptitech/markdown-it-katex";
 import hljs from "highlight.js/lib/core";
-import c from "highlight.js/lib/languages/c";
-import cpp from "highlight.js/lib/languages/cpp";
-import csharp from "highlight.js/lib/languages/csharp";
-import css from "highlight.js/lib/languages/css";
-import go from "highlight.js/lib/languages/go";
-import javascript from "highlight.js/lib/languages/javascript";
-import java from "highlight.js/lib/languages/java";
-import json from "highlight.js/lib/languages/json";
-import kotlin from "highlight.js/lib/languages/kotlin";
-import latex from "highlight.js/lib/languages/latex";
-import less from "highlight.js/lib/languages/less";
-import django from "highlight.js/lib/languages/django";
-import markdown from "highlight.js/lib/languages/markdown";
-import matlab from "highlight.js/lib/languages/matlab";
-import php from "highlight.js/lib/languages/php";
-import python from "highlight.js/lib/languages/python";
-import nginx from "highlight.js/lib/languages/nginx";
-import lua from "highlight.js/lib/languages/lua";
-import ruby from "highlight.js/lib/languages/ruby";
-import rust from "highlight.js/lib/languages/rust";
-import scss from "highlight.js/lib/languages/scss";
-import sql from "highlight.js/lib/languages/sql";
-import stylus from "highlight.js/lib/languages/stylus";
-import shell from "highlight.js/lib/languages/shell";
-import swift from "highlight.js/lib/languages/swift";
-import vim from "highlight.js/lib/languages/vim";
-import xml from "highlight.js/lib/languages/xml";
-import yaml from "highlight.js/lib/languages/yaml";
-import "highlight.js/styles/xcode.css";
 import MarkdownIt from "markdown-it";
+import mdKatex from "@traptitech/markdown-it-katex";
+import "highlight.js/styles/xcode.css";
 import mila from "markdown-it-link-attributes";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -53,24 +25,39 @@ import {
   useColorMode,
   InputGroup,
   InputLeftElement,
-  AlertDialog,
-  AlertDialogOverlay,
-  AlertDialogContent,
-  AlertDialogBody,
-  AlertDialogFooter,
-  AlertDialogHeader,
 } from "@chakra-ui/react";
-import { SettingsIcon, MoonIcon, SunIcon } from "@chakra-ui/icons";
+import {
+  SettingsIcon,
+  MoonIcon,
+  SunIcon,
+  ChatIcon,
+  DeleteIcon,
+} from "@chakra-ui/icons";
 import autosize from "autosize";
 import DOMPurify from "dompurify";
 import { CopyToClipboard } from "react-copy-to-clipboard";
 import { saveAs } from "file-saver";
 import dayjs from "dayjs";
+import { v4 as uuidv4 } from "uuid";
 
 import ASSISTANTS from "@/configs/assistants";
 import useCopyCode from "@/hooks/useCopyCode";
 import { scrollToBottom } from "@/utils/util";
+import InitLanguages from "@/utils/initLanguages";
 import SpeechRecognition from "@/components/Microphone";
+import OperationDialog from "@/components/OperationDialog";
+import {
+  Stores,
+  Chat,
+  Conversation,
+  addData,
+  deleteData,
+  getStoreData,
+  initDB,
+  getData,
+  updateData,
+  deleteStore,
+} from "../../lib/db";
 
 import style from "./index.module.sass";
 
@@ -81,35 +68,6 @@ const DIETEXT = "Please wait a minute";
 function highlightBlock(str: string, lang?: string) {
   return `<pre style="white-space: pre-wrap" class="code-block-wrapper ${style["code-block-wrapper"]}"><div class="${style["code-block-header"]}"><span class="${style["code-block-header__lang"]}">${lang}</span><span class="code-block-header__copy ${style["code-block-header__copy"]}">复制</span></div><code class="hljs code-block-body ${lang}">${str}</code></pre>`;
 }
-
-hljs.registerLanguage("javascript", javascript);
-hljs.registerLanguage("c", c);
-hljs.registerLanguage("cpp", cpp);
-hljs.registerLanguage("csharp", csharp);
-hljs.registerLanguage("css", css);
-hljs.registerLanguage("go", go);
-hljs.registerLanguage("java", java);
-hljs.registerLanguage("json", json);
-hljs.registerLanguage("kotlin", kotlin);
-hljs.registerLanguage("latex", latex);
-hljs.registerLanguage("less", less);
-hljs.registerLanguage("django", django);
-hljs.registerLanguage("markdown", markdown);
-hljs.registerLanguage("matlab", matlab);
-hljs.registerLanguage("php", php);
-hljs.registerLanguage("python", python);
-hljs.registerLanguage("nginx", nginx);
-hljs.registerLanguage("lua", lua);
-hljs.registerLanguage("ruby", ruby);
-hljs.registerLanguage("rust", rust);
-hljs.registerLanguage("scss", scss);
-hljs.registerLanguage("sql", sql);
-hljs.registerLanguage("stylus", stylus);
-hljs.registerLanguage("shell", shell);
-hljs.registerLanguage("swift", swift);
-hljs.registerLanguage("vim", vim);
-hljs.registerLanguage("xml", xml);
-hljs.registerLanguage("yaml", yaml);
 
 const mdi = new MarkdownIt({
   linkify: true,
@@ -131,10 +89,13 @@ mdi.use(mdKatex, {
   blockClass: "katexmath-block rounded-md p-[10px]",
   errorColor: " #cc0000",
 });
+InitLanguages();
 export default function Home() {
   const [inputValue, setInputValue] = useState("");
   const [loading, setLoading] = useState(false);
-  const [conversationList, setConversationList] = useState<any[]>([]);
+  const [chatList, setChatList] = useState<Chat[]>([]);
+  const [currentChat, setCurrentChat] = useState<string>("");
+  const [conversationList, setConversationList] = useState<Conversation[]>([]);
   const [isCopiedList, setIsCopiedList] = useState<any[]>([]);
   const isFinishInputRef = useRef<boolean>(true);
   const inputRef = useRef<any>(null);
@@ -143,12 +104,22 @@ export default function Home() {
   const [interimTranscript, setInterimTranscript] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const { colorMode, toggleColorMode } = useColorMode();
-  const cancelRef = useRef<any>();
+  // 删除单个对话的配置项
+  const delCurrentChatRef = useRef<any>();
   const {
-    isOpen: isOpenDeleteRecord,
-    onOpen: onOpenDeleteRecord,
-    onClose: onCloseDeleteRecord,
+    isOpen: isOpenDeleteCurrentChat,
+    onOpen: onOpenDeleteCurrentChat,
+    onClose: onCloseDeleteCurrentChat,
   } = useDisclosure();
+  // 删除所有对话的配置项
+  const delAllRef = useRef<any>();
+  const {
+    isOpen: isOpenDeleteAllRecord,
+    onOpen: onOpenDeleteAllRecord,
+    onClose: onCloseDeleteAllRecord,
+  } = useDisclosure();
+
+  // http signal controller
   const controllerRef = useRef<any>();
 
   const toast = useToast({
@@ -165,13 +136,47 @@ export default function Home() {
   );
 
   useEffect(() => {
-    setConversationList(
-      JSON.parse(localStorage.getItem("conversationList") || "[]")
-    );
+    initDBFn();
     setIsCopiedList([]);
   }, []);
 
+  const initDBFn = () => {
+    initDB().then(async () => {
+      const chatList = await getStoreData<Chat>(Stores.ChatList);
+      setChatList(
+        chatList?.sort((a: Chat, b: Chat) => {
+          if (dayjs(a.date) < dayjs(b.date)) {
+            return -1;
+          } else {
+            return 1;
+          }
+        })
+      );
+    });
+  };
+
   useCopyCode(conversationList, toast);
+
+  useEffect(() => {
+    if (currentChat) {
+      // get conversationList on this chat
+      getStoreData(Stores.ConversationList).then((conversationList: any[]) => {
+        setConversationList(
+          conversationList
+            ?.filter((item: Conversation) => item?.chatId === currentChat)
+            ?.sort((a: Conversation, b: Conversation) => {
+              if (dayjs(a.date) < dayjs(b.date)) {
+                return -1;
+              } else {
+                return 1;
+              }
+            })
+        );
+      });
+    } else {
+      setConversationList([]);
+    }
+  }, [currentChat]);
 
   const changeInputValue = (e: any) => {
     setInputValue(e?.target?.value);
@@ -256,6 +261,92 @@ export default function Home() {
     return result;
   }
 
+  const summarize = async (
+    chatList: Chat[],
+    id: string,
+    chatId: string,
+    date: number
+  ) => {
+    addData(Stores.ChatList, {
+      id: chatId,
+      title: "新对话",
+      date,
+    });
+    setChatList([...chatList, { id: chatId, title: "新对话", date }]);
+    setCurrentChat(chatId);
+
+    let originText = "";
+    try {
+      const response: any = await fetch("/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json;charset=UTF-8",
+        },
+        body: JSON.stringify({
+          question: `你将尝试总结新对话的标题(请不要出现【对话标题：】这种标识)，以使其更清晰和集中。你会分析对话中的关键信息和问题，并利用这些信息生成一个简洁而准确的标题。这将有助于确保对话参与者更容易理解话题并找到他们感兴趣的信息`,
+          id,
+          systemMessage: currentRole?.systemMessage,
+          model: "",
+        }),
+      });
+
+      // instead of response.json() and other methods
+      const reader = response.body.getReader();
+      let decoder = new TextDecoder("utf-8");
+
+      // infinite loop while the body is downloading
+      while (true) {
+        // done is true for the last chunk
+        // value is Uint8Array of the chunk bytes
+        const { done, value } = await reader.read();
+
+        // let encodedString = String.fromCodePoint.apply(null, value);
+        // let decodedString = decodeURIComponent(escape(encodedString)); //没有这一步中文会乱码
+        let decodedString = decoder.decode(value);
+        // Always process the final line
+        const lastIndex = decodedString.lastIndexOf(
+          "\n",
+          decodedString.length - 2
+        );
+        let chunk = decodedString;
+        if (lastIndex !== -1) {
+          chunk = decodedString.substring(lastIndex);
+        }
+        try {
+          const data = JSON.parse(chunk);
+
+          if (data?.text) {
+            originText = data?.text;
+          }
+          setChatList([...chatList, { id: chatId, title: originText, date }]);
+          updateData(Stores.ChatList, chatId, { title: originText });
+        } catch (error) {
+          if (!originText?.trim()?.length) {
+            setChatList([...chatList, { id: chatId, title: "新对话", date }]);
+            updateData(Stores.ChatList, chatId, { title: "新对话" });
+          } else {
+            setChatList([...chatList, { id: chatId, title: originText, date }]);
+            updateData(Stores.ChatList, chatId, { title: originText });
+          }
+        }
+
+        if (done) {
+          break;
+        }
+      }
+    } catch (error) {
+      console.log(error);
+
+      if (!originText?.trim()?.length) {
+        setChatList([...chatList, { id: chatId, title: "新对话", date }]);
+        updateData(Stores.ChatList, chatId, { title: "新对话" });
+      } else {
+        setChatList([...chatList, { id: chatId, title: originText, date }]);
+        updateData(Stores.ChatList, chatId, { title: originText });
+      }
+    }
+  };
+
   const send = async () => {
     if (loading) {
       return;
@@ -278,7 +369,10 @@ export default function Home() {
     }
     inputRef?.current?.blur();
     setLoading(true);
-    let newList: any[] = [];
+    let newList: Conversation[] = [];
+    const chatId = conversationList?.length
+      ? conversationList[0].chatId
+      : uuidv4();
     if (
       conversationList?.length > 0 &&
       conversationList?.filter(({ owner }: any) => owner !== "time")?.length %
@@ -288,26 +382,50 @@ export default function Home() {
       newList = [
         ...conversationList,
         {
+          id: uuidv4(),
+          chatId,
+          text: "",
+          originText: "",
           owner: "time",
-          value: dayjs().format("YYYY-MM-DD HH:mm:ss"),
+          date: dayjs().valueOf(),
+          done: true,
         },
         {
+          id: uuidv4(),
+          chatId,
           text: inputValue,
+          originText: inputValue,
           owner: "me",
+          date: dayjs().valueOf(),
+          done: true,
         },
       ];
     } else {
       newList = [
         ...conversationList,
         {
+          id: uuidv4(),
+          chatId,
           text: inputValue,
+          originText: inputValue,
           owner: "me",
+          date: dayjs().valueOf(),
+          done: true,
         },
       ];
     }
     setConversationList([...newList]);
     scrollToBottom();
-    localStorage.setItem("conversationList", JSON.stringify([...newList]));
+    // localStorage.setItem("conversationList", JSON.stringify([...newList]));
+    await addData(Stores.ConversationList, {
+      id: uuidv4(),
+      chatId,
+      text: inputValue,
+      originText: inputValue,
+      owner: "me",
+      done: true,
+      date: dayjs().valueOf(),
+    });
     const question = inputValue;
     setInputValue("");
 
@@ -329,21 +447,35 @@ export default function Home() {
           setConversationList([
             ...newList,
             {
-              owner: "ai",
+              id: uuidv4(),
+              chatId,
               text: img,
+              originText: img,
+              owner: "ai",
+              date: dayjs().valueOf(),
+              done: true,
             },
           ]);
           scrollToBottom(256);
-          localStorage.setItem(
-            "conversationList",
-            JSON.stringify([
-              ...newList,
-              {
-                owner: "ai",
-                text: img,
-              },
-            ])
-          );
+          // localStorage.setItem(
+          //   "conversationList",
+          //   JSON.stringify([
+          //     ...newList,
+          //     {
+          //       owner: "ai",
+          //       text: img,
+          //     },
+          //   ])
+          // );
+          await addData(Stores.ChatList, {
+            id: uuidv4(),
+            chatId,
+            text: img,
+            originText: img,
+            owner: "ai",
+            date: dayjs().valueOf(),
+            done: true,
+          });
           inputRef?.current?.focus();
           setLoading(false);
         });
@@ -368,6 +500,7 @@ export default function Home() {
       originText = "";
 
     let prevData;
+    const date = dayjs().valueOf();
     try {
       const response: any = await fetch("/chat", {
         method: "POST",
@@ -417,76 +550,126 @@ export default function Home() {
           setConversationList([
             ...newList,
             {
-              ...data,
+              id: data?.id,
+              chatId,
               owner: "ai",
               text,
-              done,
               originText,
+              date,
+              done,
             },
           ]);
           scrollToBottom();
-          localStorage.setItem(
-            "conversationList",
-            JSON.stringify([
-              ...newList,
-              {
-                ...data,
-                owner: "ai",
-                text,
-                done,
-                originText,
-              },
-            ])
-          );
+          // localStorage.setItem(
+          //   "conversationList",
+          //   JSON.stringify([
+          //     ...newList,
+          //     {
+          //       id: data?.id,
+          //       chatId: "",
+          //       owner: "ai",
+          //       text,
+          //       done,
+          //       originText,
+          //     },
+          //   ])
+          // );
+          if (await getData(Stores.ConversationList, data?.id)) {
+            await updateData(Stores.ConversationList, data?.id, {
+              id: data?.id,
+              chatId,
+              owner: "ai",
+              text,
+              originText,
+              done,
+            });
+          } else {
+            await addData(Stores.ConversationList, {
+              id: data?.id,
+              chatId,
+              owner: "ai",
+              text,
+              originText,
+              date,
+              done,
+            });
+          }
         } catch (error) {
           if (!text?.trim()?.length) {
             setConversationList([
               ...newList,
               {
+                id: uuidv4(),
+                chatId,
                 owner: "ai",
                 text: DIETEXT,
+                originText: DIETEXT,
+                date,
+                done: true,
               },
             ]);
             scrollToBottom();
-            localStorage.setItem(
-              "conversationList",
-              JSON.stringify([
-                ...newList,
-                {
-                  owner: "ai",
-                  text: DIETEXT,
-                },
-              ])
-            );
+            // localStorage.setItem(
+            //   "conversationList",
+            //   JSON.stringify([
+            //     ...newList,
+            //     {
+            //       owner: "ai",
+            //       text: DIETEXT,
+            //     },
+            //   ])
+            // );
+            await addData(Stores.ConversationList, {
+              id: uuidv4(),
+              chatId,
+              owner: "ai",
+              text: DIETEXT,
+              originText: DIETEXT,
+              date,
+              done: true,
+            });
           } else {
             setConversationList([
               ...newList,
               {
-                ...prevData,
+                id: prevData?.id,
+                chatId,
                 owner: "ai",
                 text,
-                done,
                 originText,
+                date,
+                done,
               },
             ]);
             scrollToBottom();
-            localStorage.setItem(
-              "conversationList",
-              JSON.stringify([
-                ...newList,
-                {
-                  ...prevData,
-                  owner: "ai",
-                  text,
-                  done,
-                  originText,
-                },
-              ])
-            );
+            // localStorage.setItem(
+            //   "conversationList",
+            //   JSON.stringify([
+            //     ...newList,
+            //     {
+            //       ...prevData,
+            //       owner: "ai",
+            //       text,
+            //       done,
+            //       originText,
+            //     },
+            //   ])
+            // );
+            await updateData(Stores.ConversationList, prevData?.id, {
+              id: prevData?.id,
+              chatId,
+              owner: "ai",
+              text,
+              done,
+              originText,
+            });
           }
         }
 
         if (done) {
+          if (!(await getData(Stores.ChatList, chatId))) {
+            summarize(chatList, prevData?.id, chatId, date);
+          }
           break;
         }
       }
@@ -499,46 +682,70 @@ export default function Home() {
         setConversationList([
           ...newList,
           {
+            id: uuidv4(),
+            chatId,
             owner: "ai",
             text: DIETEXT,
+            originText: DIETEXT,
+            done: true,
+            date,
           },
         ]);
         scrollToBottom();
-        localStorage.setItem(
-          "conversationList",
-          JSON.stringify([
-            ...newList,
-            {
-              owner: "ai",
-              text: DIETEXT,
-            },
-          ])
-        );
+        // localStorage.setItem(
+        //   "conversationList",
+        //   JSON.stringify([
+        //     ...newList,
+        //     {
+        //       owner: "ai",
+        //       text: DIETEXT,
+        //     },
+        //   ])
+        // );
+        await addData(Stores.ConversationList, {
+          id: uuidv4(),
+          chatId,
+          owner: "ai",
+          text: DIETEXT,
+          originText: DIETEXT,
+          done: true,
+          date,
+        });
       } else {
         setConversationList([
           ...newList,
           {
-            ...prevData,
+            id: prevData?.id,
+            chatId,
             owner: "ai",
             text,
             done: true,
             originText,
+            date,
           },
         ]);
         scrollToBottom();
-        localStorage.setItem(
-          "conversationList",
-          JSON.stringify([
-            ...newList,
-            {
-              ...prevData,
-              owner: "ai",
-              text,
-              done: true,
-              originText,
-            },
-          ])
-        );
+        // localStorage.setItem(
+        //   "conversationList",
+        //   JSON.stringify([
+        //     ...newList,
+        //     {
+        //       ...prevData,
+        //       owner: "ai",
+        //       text,
+        //       done: true,
+        //       originText,
+        //     },
+        //   ])
+        // );
+        await updateData(Stores.ConversationList, prevData?.id, {
+          id: prevData?.id,
+          chatId,
+          owner: "ai",
+          text,
+          done: true,
+          originText,
+        });
       }
 
       setLoading(false);
@@ -548,14 +755,89 @@ export default function Home() {
 
   const asideChildren = () => {
     return (
-      <>
+      <Box
+        className={style.drawListWrap}
+        height="100%"
+        paddingBottom="10px"
+        overflow="hidden"
+      >
+        <Button
+          color="teal"
+          style={{
+            height: 44,
+            width: "100%",
+            marginBottom: 10,
+          }}
+          onClick={() => {
+            setCurrentChat("");
+            inputRef?.current?.focus();
+          }}
+        >
+          开启新对话
+        </Button>
         <Box
           className={style.drawListWrap}
-          height="calc(100% - 40px)"
-          paddingBottom="20px"
+          height="calc(100% - 44px - 40px)"
+          paddingBottom="10px"
           overflow="auto"
         >
-          {ASSISTANTS?.map((item: any, index: number) => (
+          {chatList.map((item: Chat, index: number) => {
+            return (
+              <Box
+                background={
+                  currentChat === item?.id
+                    ? colorMode === "light"
+                      ? "#f0f0f0"
+                      : "#353535"
+                    : "transparent"
+                }
+                borderRadius="4px"
+                display="flex"
+                cursor="pointer"
+                padding="10px"
+                _hover={{
+                  background: colorMode === "light" ? "#f0f0f0" : "#353535",
+                }}
+                marginBottom={index === chatList?.length - 1 ? "0px" : "2px"}
+                className={style.singleChat}
+                onClick={() => setCurrentChat(item?.id)}
+                key={item?.id}
+              >
+                <Box>
+                  <ChatIcon />
+                </Box>
+                <Box
+                  width={200}
+                  padding="0px 4px"
+                  overflow="hidden"
+                  whiteSpace="nowrap"
+                  textOverflow="ellipsis"
+                >
+                  {item?.title}
+                </Box>
+                <Box
+                  display={currentChat === item?.id ? "inline-block" : "none"}
+                  lineHeight="22px"
+                >
+                  {
+                    <IconButton
+                      onClick={() => {
+                        onOpenDeleteCurrentChat();
+                      }}
+                      height="20px"
+                      minWidth="24px"
+                      aria-label="DeleteChat"
+                      _hover={{
+                        color: colorMode === "light" ? "#777" : "#fff",
+                      }}
+                      icon={<DeleteIcon lineHeight="20px" />}
+                    />
+                  }
+                </Box>
+              </Box>
+            );
+          })}
+          {/* {ASSISTANTS?.map((item: any, index: number) => (
             <div className={style.singleItem} key={index}>
               <Box
                 color="teal"
@@ -589,7 +871,7 @@ export default function Home() {
                 </div>
               ))}
             </div>
-          ))}
+          ))} */}
         </Box>
         <Box justifyContent="space-around" display="flex" height="40px">
           <Button
@@ -611,21 +893,21 @@ export default function Home() {
           <Button
             color="teal"
             onClick={() => {
-              if (conversationList?.length > 0) {
-                onOpenDeleteRecord();
+              if (chatList?.length > 0) {
+                onOpenDeleteAllRecord();
               } else {
                 toast({
-                  description: "暂无记录",
+                  description: "暂无对话",
                   duration: 3000,
                   variant: "solid",
                 });
               }
             }}
           >
-            清除聊天记录
+            清除所有对话
           </Button>
         </Box>
-      </>
+      </Box>
     );
   };
 
@@ -639,43 +921,55 @@ export default function Home() {
       margin={0}
       padding={0}
     >
-      <AlertDialog
-        leastDestructiveRef={cancelRef}
-        isOpen={isOpenDeleteRecord}
-        onClose={onCloseDeleteRecord}
-      >
-        <AlertDialogOverlay>
-          <AlertDialogContent>
-            <AlertDialogHeader fontSize="lg" fontWeight="bold">
-              删除确认
-            </AlertDialogHeader>
+      {/* 删除当前弹窗 */}
+      <OperationDialog
+        destructiveRef={delCurrentChatRef}
+        isOpenDeleteRecord={isOpenDeleteCurrentChat}
+        onCloseDeleteRecord={onCloseDeleteCurrentChat}
+        confirm={async () => {
+          const conversationList: Conversation[] = await getStoreData(
+            Stores.ConversationList
+          );
 
-            <AlertDialogBody>确定要删除所有聊天记录吗？</AlertDialogBody>
-
-            <AlertDialogFooter>
-              <Button ref={cancelRef} onClick={onCloseDeleteRecord}>
-                取消
-              </Button>
-              <Button
-                colorScheme="red"
-                onClick={() => {
-                  localStorage.removeItem("conversationList");
-                  setConversationList([]);
-                  onCloseDeleteRecord();
-                  toast({
-                    description: "删除成功",
-                    duration: 3000,
-                    variant: "solid",
-                  });
-                }}
-                ml={3}
-              >
-                确认
-              </Button>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialogOverlay>
-      </AlertDialog>
+          for (let i = 0; i < conversationList?.length; i++) {
+            let conversation: Conversation = conversationList[i];
+            if (conversation?.chatId === currentChat) {
+              await deleteData(Stores.ConversationList, conversation?.id);
+            }
+          }
+          await deleteData(Stores.ChatList, currentChat);
+          setCurrentChat("");
+          onCloseDeleteCurrentChat();
+          initDBFn();
+          toast({
+            description: "删除成功",
+            duration: 3000,
+            variant: "solid",
+          });
+        }}
+        title="确认删除"
+        detail="确定要删除当前对话吗？"
+      />
+      {/* 删除所有对话弹窗 */}
+      <OperationDialog
+        destructiveRef={delAllRef}
+        isOpenDeleteRecord={isOpenDeleteAllRecord}
+        onCloseDeleteRecord={onCloseDeleteAllRecord}
+        confirm={() => {
+          deleteStore(Stores.ConversationList);
+          deleteStore(Stores.ChatList);
+          setCurrentChat("");
+          onCloseDeleteAllRecord();
+          initDBFn();
+          toast({
+            description: "删除成功",
+            duration: 3000,
+            variant: "solid",
+          });
+        }}
+        title="确认删除"
+        detail="确定要删除所有对话吗？"
+      />
       {!isMobile && (
         <aside
           style={{
@@ -773,7 +1067,7 @@ export default function Home() {
             {conversationList?.length > 0 ? (
               conversationList?.map((info: any, index: any) =>
                 info?.owner === "ai" ? (
-                  <div key={info?.id ?? 0 + index} className={style.aiInfoWrap}>
+                  <div key={info?.id} className={style.aiInfoWrap}>
                     {/* <NextImage
                     className={style.avatar}
                     src={AI_AVATAR}
@@ -834,7 +1128,7 @@ export default function Home() {
                     </Popover>
                   </div>
                 ) : info?.owner === "me" ? (
-                  <div key={info?.id ?? 0 + index} className={style.meInfoWrap}>
+                  <div key={info?.id} className={style.meInfoWrap}>
                     <span className={style.avatar}>😁</span>
                     <Popover
                       trigger={isMobile ? "click" : "hover"}
@@ -887,7 +1181,7 @@ export default function Home() {
                     </Popover>
                   </div>
                 ) : (
-                  <Box key={info.value} position="relative" padding="10">
+                  <Box key={info.date} position="relative" padding="10">
                     <Divider />
                     <AbsoluteCenter
                       px="4"
@@ -907,7 +1201,7 @@ export default function Home() {
                             }
                       }
                     >
-                      {info.value}
+                      {dayjs(info.date).format("YYYY-MM-DD HH:mm:ss")}
                     </AbsoluteCenter>
                   </Box>
                 )

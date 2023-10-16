@@ -17,8 +17,8 @@ const nextConfig = {
     return [
       {
         source: "/chat",
-        // destination: "http://127.0.0.1:3000/open-ai/chat",
-        destination: "https://60.204.155.1/chat",
+        destination: "http://127.0.0.1:3000/open-ai/chat",
+        // destination: "https://60.204.155.1/chat",
       },
       {
         source: "/translate",
