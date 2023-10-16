@@ -807,7 +807,11 @@ export default function Home() {
                   <ChatIcon />
                 </Box>
                 <Box
-                  width={200}
+                  width={
+                    currentChat === item?.id
+                      ? "calc(100% - 36px)"
+                      : "calc(100% - 20px)"
+                  }
                   padding="0px 4px"
                   overflow="hidden"
                   whiteSpace="nowrap"
