@@ -771,6 +771,9 @@ export default function Home() {
           onClick={() => {
             setCurrentChat("");
             inputRef?.current?.focus();
+            if (isMobile) {
+              onClose();
+            }
           }}
         >
           开启新对话
