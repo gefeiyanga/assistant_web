@@ -1088,6 +1088,10 @@ export default function Home() {
                                 size="xs"
                                 leftIcon={<ArrowForwardIcon />}
                                 aria-label="collect"
+                                onClick={() => {
+                                  onClosePromptConfigModal();
+                                  setInputValue(prompt?.prompt);
+                                }}
                               >
                                 使用
                               </Button>
@@ -1169,6 +1173,10 @@ export default function Home() {
                               size="xs"
                               leftIcon={<ArrowForwardIcon />}
                               aria-label="collect"
+                              onClick={() => {
+                                onClosePromptConfigModal();
+                                setInputValue(prompt?.prompt);
+                              }}
                             >
                               使用
                             </Button>
