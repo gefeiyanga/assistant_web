@@ -25,6 +25,14 @@ import {
   useColorMode,
   InputGroup,
   InputLeftElement,
+  Tabs,
+  TabList,
+  TabPanels,
+  Tab,
+  TabPanel,
+  ListItem,
+  List,
+  Text,
 } from "@chakra-ui/react";
 import {
   SettingsIcon,
@@ -32,7 +40,11 @@ import {
   SunIcon,
   ChatIcon,
   DeleteIcon,
+  ArrowForwardIcon,
 } from "@chakra-ui/icons";
+import { AiOutlineStar, AiFillStar } from "react-icons/ai";
+import { FcDeleteRow } from "react-icons/fc";
+
 import autosize from "autosize";
 import DOMPurify from "dompurify";
 import { CopyToClipboard } from "react-copy-to-clipboard";
@@ -41,6 +53,7 @@ import dayjs from "dayjs";
 import { v4 as uuidv4 } from "uuid";
 
 import ASSISTANTS from "@/configs/assistants";
+import PROMPT from "@/configs/prompts.json";
 import useCopyCode from "@/hooks/useCopyCode";
 import { scrollToBottom } from "@/utils/util";
 import InitLanguages from "@/utils/initLanguages";
@@ -50,6 +63,7 @@ import {
   Stores,
   Chat,
   Conversation,
+  Prompt,
   addData,
   deleteData,
   getStoreData,
@@ -118,6 +132,14 @@ export default function Home() {
     onOpen: onOpenDeleteAllRecord,
     onClose: onCloseDeleteAllRecord,
   } = useDisclosure();
+  // Prompt配置项
+  const {
+    isOpen: isOpenPromptConfigModal,
+    onOpen: onOpenPromptConfigModal,
+    onClose: onClosePromptConfigModal,
+  } = useDisclosure();
+  // prompt收藏
+  const [collectPromptList, setCollectPromptList] = useState<Prompt[]>([]);
 
   // http signal controller
   const controllerRef = useRef<any>();
@@ -143,6 +165,7 @@ export default function Home() {
   const initDBFn = () => {
     initDB().then(async () => {
       const chatList = await getStoreData<Chat>(Stores.ChatList);
+      const promptList = await getStoreData<Prompt>(Stores.PromptList);
       setChatList(
         chatList?.sort((a: Chat, b: Chat) => {
           if (dayjs(a.date) < dayjs(b.date)) {
@@ -152,6 +175,7 @@ export default function Home() {
           }
         })
       );
+      setCollectPromptList(promptList);
     });
   };
 
@@ -174,7 +198,10 @@ export default function Home() {
         );
       });
     } else {
-      setConversationList([]);
+      const to = setTimeout(() => {
+        setConversationList([]);
+        to && clearTimeout(to);
+      }, 200);
     }
   }, [currentChat]);
 
@@ -769,6 +796,7 @@ export default function Home() {
             marginBottom: 10,
           }}
           onClick={() => {
+            controllerRef.current?.abort();
             setCurrentChat("");
             inputRef?.current?.focus();
             if (isMobile) {
@@ -977,6 +1005,185 @@ export default function Home() {
         title="确认删除"
         detail="确定要删除所有对话吗？"
       />
+
+      {/* Prompt配置弹窗 */}
+      <OperationDialog
+        isOpenDeleteRecord={isOpenPromptConfigModal}
+        onCloseDeleteRecord={onClosePromptConfigModal}
+        title="配置Prompt"
+        detail={
+          <Box>
+            <Tabs isFitted variant="soft-rounded" colorScheme="green">
+              <TabList>
+                <Tab fontSize="lg">收藏</Tab>
+                <Tab fontSize="lg">全部</Tab>
+              </TabList>
+              <TabPanels>
+                <TabPanel padding="12px 0px">
+                  <List spacing={3}>
+                    {collectPromptList?.length > 0 ? (
+                      collectPromptList?.map((prompt: any) => {
+                        return (
+                          <ListItem
+                            key={prompt?.id}
+                            border="1px solid #eaeaea"
+                            borderRadius={4}
+                            padding="10px"
+                          >
+                            <Text fontSize="md">{prompt?.act}</Text>
+                            <Box
+                              margin="0px 0px 6px 0px"
+                              fontSize="12px"
+                              overflow="hidden"
+                              textOverflow="ellipsis"
+                              width="100%"
+                              style={{
+                                WebkitLineClamp: 2,
+                                WebkitBoxOrient: "vertical",
+                                display: "-webkit-box",
+                              }}
+                            >
+                              {prompt?.prompt}
+                            </Box>
+                            <Stack direction="row" spacing={4}>
+                              <Button
+                                size="xs"
+                                leftIcon={<FcDeleteRow />}
+                                aria-label="collect"
+                                onClick={async () => {
+                                  if (
+                                    collectPromptList?.find(
+                                      (item: Prompt) => item?.id === prompt?.id
+                                    )
+                                  ) {
+                                    let index = 0;
+                                    for (
+                                      let i = 0;
+                                      i < collectPromptList?.length;
+                                      i++
+                                    ) {
+                                      if (
+                                        collectPromptList[i]?.id === prompt?.id
+                                      ) {
+                                        index = i;
+                                        break;
+                                      }
+                                    }
+                                    console.log(index);
+                                    let newCollectPromptList = [
+                                      ...collectPromptList,
+                                    ];
+                                    newCollectPromptList.splice(index, 1);
+                                    setCollectPromptList(newCollectPromptList);
+                                    await deleteData(
+                                      Stores.PromptList,
+                                      prompt?.id
+                                    );
+                                  }
+                                }}
+                              >
+                                移除
+                              </Button>
+                              <Button
+                                size="xs"
+                                leftIcon={<ArrowForwardIcon />}
+                                aria-label="collect"
+                              >
+                                使用
+                              </Button>
+                            </Stack>
+                          </ListItem>
+                        );
+                      })
+                    ) : (
+                      <Box padding="20px" textAlign="center">
+                        不妨先收藏几个Prompt~
+                      </Box>
+                    )}
+                  </List>
+                </TabPanel>
+                <TabPanel padding="12px 0px">
+                  <List spacing={3}>
+                    {PROMPT?.map((prompt) => {
+                      return (
+                        <ListItem
+                          key={prompt?.id}
+                          border="1px solid #eaeaea"
+                          borderRadius={4}
+                          padding="10px"
+                        >
+                          <Text fontSize="md">{prompt?.act}</Text>
+                          <Box
+                            margin="0px 0px 6px 0px"
+                            fontSize="12px"
+                            overflow="hidden"
+                            textOverflow="ellipsis"
+                            width="100%"
+                            style={{
+                              WebkitLineClamp: 2,
+                              WebkitBoxOrient: "vertical",
+                              display: "-webkit-box",
+                            }}
+                          >
+                            {prompt?.prompt}
+                          </Box>
+                          <Stack direction="row" spacing={4}>
+                            <Button
+                              size="xs"
+                              leftIcon={
+                                collectPromptList?.find(
+                                  (item: Prompt) => item?.id === prompt?.id
+                                ) ? (
+                                  <AiFillStar />
+                                ) : (
+                                  <AiOutlineStar />
+                                )
+                              }
+                              isDisabled={
+                                !!collectPromptList?.find(
+                                  (item: Prompt) => item?.id === prompt?.id
+                                )
+                              }
+                              aria-label="collect"
+                              onClick={async () => {
+                                if (
+                                  !collectPromptList?.find(
+                                    (item: Prompt) => item?.id === prompt?.id
+                                  )
+                                ) {
+                                  setCollectPromptList([
+                                    ...collectPromptList,
+                                    prompt,
+                                  ]);
+                                  await addData(Stores.PromptList, prompt);
+                                }
+                              }}
+                            >
+                              {collectPromptList?.find(
+                                (item: Prompt) => item?.id === prompt?.id
+                              )
+                                ? "已收藏"
+                                : "收藏"}
+                            </Button>
+                            <Button
+                              size="xs"
+                              leftIcon={<ArrowForwardIcon />}
+                              aria-label="collect"
+                            >
+                              使用
+                            </Button>
+                          </Stack>
+                        </ListItem>
+                      );
+                    })}
+                  </List>
+                </TabPanel>
+              </TabPanels>
+            </Tabs>
+          </Box>
+        }
+        footer={false}
+      />
       {!isMobile && (
         <aside
           style={{
@@ -1025,15 +1232,21 @@ export default function Home() {
             )}
             <Stack direction="row">
               <Stack direction="row">
-                <Badge variant="outline" colorScheme="teal">
-                  {currentRole?.title}
+                <Badge
+                  variant="outline"
+                  colorScheme="teal"
+                  cursor="pointer"
+                  onClick={() => onOpenPromptConfigModal()}
+                >
+                  {/* {currentRole?.title} */}
+                  Prompt
                 </Badge>
               </Stack>
               <Stack style={{ marginLeft: 14 }} direction="row">
                 <Badge
                   variant="outline"
                   colorScheme="teal"
-                  cursor={"pointer"}
+                  cursor="pointer"
                   onClick={() => {
                     setIsGPT4(!isGPT4);
                   }}

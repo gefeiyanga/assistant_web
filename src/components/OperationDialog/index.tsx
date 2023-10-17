@@ -9,12 +9,13 @@ import {
 } from "@chakra-ui/react";
 
 interface OperationDialogProps {
-  destructiveRef: any;
+  destructiveRef?: any;
   isOpenDeleteRecord: boolean;
   onCloseDeleteRecord: () => void;
-  confirm: Function;
+  confirm?: Function;
   title: string;
-  detail: string;
+  detail: string | React.ReactNode;
+  footer?: boolean;
 }
 
 const OperationDialog = ({
@@ -24,6 +25,7 @@ const OperationDialog = ({
   confirm,
   title,
   detail,
+  footer = true,
 }: OperationDialogProps) => {
   return (
     <AlertDialog
@@ -39,20 +41,22 @@ const OperationDialog = ({
 
           <AlertDialogBody>{detail}</AlertDialogBody>
 
-          <AlertDialogFooter>
-            <Button ref={destructiveRef} onClick={onCloseDeleteRecord}>
-              取消
-            </Button>
-            <Button
-              colorScheme="red"
-              onClick={() => {
-                confirm();
-              }}
-              ml={3}
-            >
-              确认
-            </Button>
-          </AlertDialogFooter>
+          {footer && (
+            <AlertDialogFooter>
+              <Button ref={destructiveRef} onClick={onCloseDeleteRecord}>
+                取消
+              </Button>
+              <Button
+                colorScheme="red"
+                onClick={() => {
+                  confirm && confirm();
+                }}
+                ml={3}
+              >
+                确认
+              </Button>
+            </AlertDialogFooter>
+          )}
         </AlertDialogContent>
       </AlertDialogOverlay>
     </AlertDialog>

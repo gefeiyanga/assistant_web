@@ -18,9 +18,15 @@ export interface Conversation {
   date: number;
   done: true | false;
 }
+export interface Prompt {
+  id: number | string;
+  act: string;
+  prompt: string;
+}
 export enum Stores {
   ChatList = "chatList",
   ConversationList = "conversationList",
+  PromptList = "promptList",
 }
 
 export const initDB = (): Promise<boolean | IDBDatabase> => {
@@ -49,6 +55,14 @@ export const initDB = (): Promise<boolean | IDBDatabase> => {
         objectStore.createIndex("originText", "originText", { unique: false });
         objectStore.createIndex("value", "value", { unique: false });
         objectStore.createIndex("done", "done", { unique: false });
+      }
+      if (!db.objectStoreNames.contains(Stores.PromptList)) {
+        // console.log("Creating promptList store");
+        const objectStore = db.createObjectStore(Stores.PromptList, {
+          keyPath: "id",
+        });
+        objectStore.createIndex("act", "act", { unique: false });
+        objectStore.createIndex("prompt", "prompt", { unique: false });
       }
       // no need to resolve here
     };
