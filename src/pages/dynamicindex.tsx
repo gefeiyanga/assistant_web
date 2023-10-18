@@ -33,6 +33,11 @@ import {
   ListItem,
   List,
   Text,
+  Input,
+  FormControl,
+  FormLabel,
+  FormHelperText,
+  FormErrorMessage,
 } from "@chakra-ui/react";
 import {
   SettingsIcon,
@@ -41,9 +46,11 @@ import {
   ChatIcon,
   DeleteIcon,
   ArrowForwardIcon,
+  AddIcon,
 } from "@chakra-ui/icons";
 import { AiOutlineStar, AiFillStar } from "react-icons/ai";
 import { FcDeleteRow } from "react-icons/fc";
+import { useForm } from "react-hook-form";
 
 import autosize from "autosize";
 import DOMPurify from "dompurify";
@@ -140,6 +147,20 @@ export default function Home() {
   } = useDisclosure();
   // prompt收藏
   const [collectPromptList, setCollectPromptList] = useState<Prompt[]>([]);
+  // 搜索prompt
+  const [searchInputValue, setSearchInputValue] = useState("");
+  // 自定义添加Prompt弹窗配置
+  const {
+    isOpen: isOpenBespokePromptConfigModal,
+    onOpen: onOpenBespokePromptConfigModal,
+    onClose: onCloseBespokePromptConfigModal,
+  } = useDisclosure();
+  const {
+    handleSubmit,
+    register,
+    formState: { errors, isSubmitting },
+    reset,
+  } = useForm();
 
   // http signal controller
   const controllerRef = useRef<any>();
@@ -779,6 +800,36 @@ export default function Home() {
       inputRef?.current?.focus();
     }
   };
+  function debounce(fn: any, delay = 200) {
+    let timer: any;
+
+    return (...args: any[]) => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        fn(...args);
+      }, delay);
+    };
+  }
+
+  const handleInputChange = debounce((e: any) => {
+    setSearchInputValue(e.target.value);
+  });
+
+  async function onSubmit(values: any) {
+    const newPrompt = {
+      id: uuidv4(),
+      ...values,
+    };
+    setCollectPromptList([...collectPromptList, newPrompt]);
+    await addData(Stores.PromptList, newPrompt);
+    toast({
+      description: "添加成功",
+      duration: 3000,
+      variant: "solid",
+    });
+    onCloseBespokePromptConfigModal();
+    reset();
+  }
 
   const asideChildren = () => {
     return (
@@ -822,7 +873,7 @@ export default function Home() {
                       : "#353535"
                     : "transparent"
                 }
-                borderRadius="4px"
+                borderRadius="6px"
                 display="flex"
                 cursor="pointer"
                 padding="10px"
@@ -1006,28 +1057,109 @@ export default function Home() {
         detail="确定要删除所有对话吗？"
       />
 
+      {/* 自定义添加prompt */}
+      <OperationDialog
+        isOpenDeleteRecord={isOpenBespokePromptConfigModal}
+        onCloseDeleteRecord={() => {
+          onCloseBespokePromptConfigModal();
+        }}
+        title="添加自定义Prompt"
+        detail={
+          <Box>
+            <form autoComplete="off" onSubmit={handleSubmit(onSubmit)}>
+              <FormControl
+                isInvalid={Boolean(errors.act || errors.prompt)}
+                isRequired
+              >
+                <FormLabel htmlFor="act">Prompt名称</FormLabel>
+                <Box marginBottom="20px">
+                  <Input
+                    id="act"
+                    placeholder="请输入Prompt名称"
+                    {...register("act", {
+                      required: "请输入",
+                      maxLength: { value: 20, message: "不要超过20字" },
+                    })}
+                  />
+                  <FormErrorMessage>
+                    {errors?.act && errors?.act?.message?.toString()}
+                  </FormErrorMessage>
+                </Box>
+
+                <Box marginBottom="20px">
+                  <FormLabel htmlFor="detail">Prompt内容</FormLabel>
+                  <Input
+                    id="prompt"
+                    placeholder="请输入Prompt内容"
+                    {...register("prompt", {
+                      required: "请输入",
+                      maxLength: { value: 300, message: "不要超过300字" },
+                    })}
+                  />
+                  <FormErrorMessage>
+                    {errors?.prompt && errors?.prompt?.message?.toString()}
+                  </FormErrorMessage>
+                </Box>
+              </FormControl>
+
+              <Button
+                mt={4}
+                colorScheme="teal"
+                isLoading={isSubmitting}
+                type="submit"
+              >
+                Submit
+              </Button>
+            </form>
+          </Box>
+        }
+        footer={false}
+      />
+
       {/* Prompt配置弹窗 */}
       <OperationDialog
         isOpenDeleteRecord={isOpenPromptConfigModal}
-        onCloseDeleteRecord={onClosePromptConfigModal}
+        onCloseDeleteRecord={() => {
+          onClosePromptConfigModal();
+        }}
         title="配置Prompt"
         detail={
           <Box>
+            <Box width="100%" textAlign="center" marginBottom="12px">
+              <Button
+                onClick={onOpenBespokePromptConfigModal}
+                leftIcon={<AddIcon />}
+                colorScheme="teal"
+              >
+                添加自定义Prompt
+              </Button>
+            </Box>
+            <Input
+              placeholder="请输入关键词搜索"
+              marginBottom="12px"
+              onChange={handleInputChange}
+            />
             <Tabs isFitted variant="soft-rounded" colorScheme="green">
               <TabList>
                 <Tab fontSize="lg">收藏</Tab>
-                <Tab fontSize="lg">全部</Tab>
+                <Tab fontSize="lg">默认</Tab>
               </TabList>
               <TabPanels>
                 <TabPanel padding="12px 0px">
                   <List spacing={3}>
                     {collectPromptList?.length > 0 ? (
-                      collectPromptList?.map((prompt: any) => {
+                      (searchInputValue?.length
+                        ? collectPromptList?.filter(
+                            (prompt: any) =>
+                              prompt?.act?.search(searchInputValue?.trim()) > -1
+                          )
+                        : collectPromptList
+                      )?.map((prompt: any) => {
                         return (
                           <ListItem
                             key={prompt?.id}
                             border="1px solid #eaeaea"
-                            borderRadius={4}
+                            borderRadius={6}
                             padding="10px"
                           >
                             <Text fontSize="md">{prompt?.act}</Text>
@@ -1090,6 +1222,7 @@ export default function Home() {
                                 aria-label="collect"
                                 onClick={() => {
                                   onClosePromptConfigModal();
+                                  setSearchInputValue("");
                                   setInputValue(prompt?.prompt);
                                 }}
                               >
@@ -1107,13 +1240,35 @@ export default function Home() {
                   </List>
                 </TabPanel>
                 <TabPanel padding="12px 0px">
+                  {/* <InputGroup size="md" marginBottom="12px"> */}
+                  {/* <InputRightElement>
+                      <IconButton
+                        h="1.75rem"
+                        aria-label="Search"
+                        icon={<SearchIcon />}
+                        colorScheme="green"
+                        variant="outline"
+                        border="0px"
+                        background="transparent"
+                        size="sm"
+                        // onClick={onOpen}
+                      ></IconButton>
+                    </InputRightElement> */}
+                  {/* </InputGroup> */}
+
                   <List spacing={3}>
-                    {PROMPT?.map((prompt) => {
+                    {(searchInputValue?.length
+                      ? PROMPT?.filter(
+                          (prompt: any) =>
+                            prompt?.act?.search(searchInputValue?.trim()) > -1
+                        )
+                      : PROMPT
+                    )?.map((prompt) => {
                       return (
                         <ListItem
                           key={prompt?.id}
                           border="1px solid #eaeaea"
-                          borderRadius={4}
+                          borderRadius={6}
                           padding="10px"
                         >
                           <Text fontSize="md">{prompt?.act}</Text>
@@ -1175,6 +1330,7 @@ export default function Home() {
                               aria-label="collect"
                               onClick={() => {
                                 onClosePromptConfigModal();
+                                setSearchInputValue("");
                                 setInputValue(prompt?.prompt);
                               }}
                             >
