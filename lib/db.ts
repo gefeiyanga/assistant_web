@@ -31,7 +31,7 @@ export enum Stores {
 
 export const initDB = (): Promise<boolean | IDBDatabase> => {
   return new Promise((resolve) => {
-    request = indexedDB.open("myDB");
+    request = indexedDB.open("myDB", version);
 
     // if the data object store doesn't exist, create it
     request.onupgradeneeded = (event: any) => {
@@ -216,7 +216,7 @@ export const updateData = <T>(
 
 export const getStoreData = <T>(storeName: Stores): Promise<T[]> => {
   return new Promise((resolve) => {
-    request = indexedDB.open("myDB");
+    request = indexedDB.open("myDB", version);
     // console.log("request.onsuccess - getAllData");
     request.onsuccess = (event: any) => {
       if (event?.target?.result) {
