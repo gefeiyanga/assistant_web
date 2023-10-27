@@ -1218,14 +1218,15 @@ export default function Home() {
             <Box marginBottom="18px">
               <FormLabel>
                 初始系统指令
-                <Link
-                  href="#"
+                <Button
+                  colorScheme="teal"
+                  variant="link"
                   fontSize="12px"
                   onClick={() => setSystemMessage("你是一个生成式AI助手")}
                   color="teal.500"
                 >
                   重置为默认值
-                </Link>
+                </Button>
               </FormLabel>
               <Textarea
                 onChange={(e: any) => setSystemMessage(e?.target?.value)}
@@ -1238,14 +1239,15 @@ export default function Home() {
                 <Text display="inline-block" textAlign="center" width="38px">
                   {temperature}
                 </Text>
-                <Link
-                  href="#"
+                <Button
+                  colorScheme="teal"
+                  variant="link"
                   fontSize="12px"
                   onClick={() => setTemperature(0.7)}
                   color="teal.500"
                 >
                   重置为默认值
-                </Link>
+                </Button>
               </FormLabel>
               <FormHelperText>
                 0.8等较高值会使输出更加随机，而0.2等较低值则会使输出更加集中和确定。
@@ -1279,14 +1281,15 @@ export default function Home() {
                 <Text display="inline-block" textAlign="center" width="40px">
                   {presence_penalty}
                 </Text>
-                <Link
-                  href="#"
+                <Button
+                  colorScheme="teal"
+                  variant="link"
                   fontSize="12px"
                   onClick={() => setPresence_penalty(0)}
                   color="teal.500"
                 >
                   重置为默认值
-                </Link>
+                </Button>
               </FormLabel>
               <FormHelperText>
                 根据新标记是否出现在文本中对其进行惩罚，从而增加模型谈论新话题的可能性。
@@ -1319,14 +1322,15 @@ export default function Home() {
                 <Text display="inline-block" textAlign="center" width="40px">
                   {frequency_penalty}
                 </Text>
-                <Link
-                  href="#"
+                <Button
+                  colorScheme="teal"
+                  variant="link"
                   fontSize="12px"
                   onClick={() => setFrequency_penalty(0)}
                   color="teal.500"
                 >
                   重置为默认值
-                </Link>
+                </Button>
               </FormLabel>
               <FormHelperText>
                 根据新标记在文本中的现有频率对其进行惩罚，从而降低模型逐字重复同一行的可能性。
@@ -1359,14 +1363,15 @@ export default function Home() {
                 <Text display="inline-block" textAlign="center" width="40px">
                   {top_p}
                 </Text>
-                <Link
-                  href="#"
+                <Button
+                  colorScheme="teal"
+                  variant="link"
                   fontSize="12px"
                   onClick={() => setTop_p(1)}
                   color="teal.500"
                 >
                   重置为默认值
-                </Link>
+                </Button>
               </FormLabel>
               <FormHelperText>
                 temperature采样的另一种方法top_p采样，即模型考虑概率质量为top_p的标记的结果。因此，0.1意味着只考虑概率最高的10%的文字。
