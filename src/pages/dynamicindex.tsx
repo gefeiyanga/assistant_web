@@ -1249,7 +1249,7 @@ export default function Home() {
                   重置为默认值
                 </Button>
               </FormLabel>
-              <FormHelperText>
+              <FormHelperText marginBottom="4px">
                 0.8等较高值会使输出更加随机，而0.2等较低值则会使输出更加集中和确定。
               </FormHelperText>
               <Slider
@@ -1291,7 +1291,7 @@ export default function Home() {
                   重置为默认值
                 </Button>
               </FormLabel>
-              <FormHelperText>
+              <FormHelperText marginBottom="4px">
                 根据新标记是否出现在文本中对其进行惩罚，从而增加模型谈论新话题的可能性。
               </FormHelperText>
               <Slider
@@ -1332,7 +1332,7 @@ export default function Home() {
                   重置为默认值
                 </Button>
               </FormLabel>
-              <FormHelperText>
+              <FormHelperText marginBottom="4px">
                 根据新标记在文本中的现有频率对其进行惩罚，从而降低模型逐字重复同一行的可能性。
               </FormHelperText>
               <Slider
@@ -1373,7 +1373,7 @@ export default function Home() {
                   重置为默认值
                 </Button>
               </FormLabel>
-              <FormHelperText>
+              <FormHelperText marginBottom="4px">
                 temperature采样的另一种方法top_p采样，即模型考虑概率质量为top_p的标记的结果。因此，0.1意味着只考虑概率最高的10%的文字。
               </FormHelperText>
               <Slider
