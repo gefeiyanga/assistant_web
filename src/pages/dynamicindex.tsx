@@ -59,7 +59,6 @@ import { saveAs } from "file-saver";
 import dayjs from "dayjs";
 import { v4 as uuidv4 } from "uuid";
 
-import ASSISTANTS from "@/configs/assistants";
 import PROMPT from "@/configs/prompts.json";
 import useCopyCode from "@/hooks/useCopyCode";
 import { scrollToBottom } from "@/utils/util";
@@ -174,9 +173,6 @@ export default function Home() {
     },
   });
   const { isOpen, onOpen, onClose } = useDisclosure();
-  const [currentRole, setCurrentRole] = useState<any>(
-    ASSISTANTS[0]["roleList"][0]
-  );
 
   useEffect(() => {
     initDBFn();
@@ -256,59 +252,6 @@ export default function Home() {
     };
   }, [ro]);
 
-  async function queryImageFromText(data: any) {
-    const response = await fetch(
-      "https://api-inference.huggingface.co/models/prompthero/openjourney",
-      {
-        headers: {
-          Authorization: "Bearer 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",
-        },
-        method: "POST",
-        body: JSON.stringify(data),
-      }
-    );
-    const result = await response.blob();
-    return result;
-  }
-  // Clipdrop API
-  async function queryClipdropImageFromText(data: any) {
-    const response = await fetch("https://clipdrop-api.co/text-to-image/v1", {
-      headers: {
-        "x-api-key":
-          "43816edcf9adfdb93dd8f9438e1fe3045d7b29c8c6d5fd62b64c92853b6973e5ecb3d7dd5c58c18dd0f5969ab0da0895",
-      },
-      method: "POST",
-      body: data,
-    });
-
-    const result = await response.arrayBuffer();
-    return result;
-  }
-
-  async function translator(data: any) {
-    let formBody = new URLSearchParams();
-    formBody.append("q", data?.q);
-    formBody.append("salt", "variousdid");
-    formBody.append("from", "auto");
-    formBody.append("to", "en");
-    formBody.append("appid", "20230331001622946");
-    formBody.append(
-      "sign",
-      md5("20230331001622946" + data?.q + "variousdid" + "hAJX6N850CHRDRwm8PsW")
-    );
-
-    const response = await fetch("/translate", {
-      method: "POST",
-      body: formBody,
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-    });
-
-    const result = await response.json();
-    return result;
-  }
-
   const summarize = async (
     chatList: Chat[],
     id: string,
@@ -333,7 +276,7 @@ export default function Home() {
         body: JSON.stringify({
           question: `你将尝试总结新对话的标题(请不要出现【对话标题：】这种标识)，以使其更清晰和集中。你会分析对话中的关键信息和问题，并利用这些信息生成一个简洁而准确的标题。这将有助于确保对话参与者更容易理解话题并找到他们感兴趣的信息`,
           id,
-          systemMessage: currentRole?.systemMessage,
+          systemMessage: "",
           model: "",
         }),
       });
@@ -464,7 +407,6 @@ export default function Home() {
     }
     setConversationList([...newList]);
     scrollToBottom();
-    // localStorage.setItem("conversationList", JSON.stringify([...newList]));
     await addData(Stores.ConversationList, {
       id: uuidv4(),
       chatId,
@@ -476,63 +418,6 @@ export default function Home() {
     });
     const question = inputValue;
     setInputValue("");
-
-    if (currentRole?.type === "text-to-image") {
-      const translatedQ = await translator({ q: question });
-      // const inputs = translatedQ?.trans_result[0].dst + ", mdjrny-v4 style";
-      const form = new FormData();
-      form.append("prompt", translatedQ?.trans_result[0].dst);
-      try {
-        queryClipdropImageFromText(form).then(async (response) => {
-          // Use image
-          const image = new (Image as any)(256, 256);
-
-          const arrayBufferView = new Uint8Array(response);
-          const blob = new Blob([arrayBufferView], { type: "image/jpeg" });
-          const url = await URL.createObjectURL(blob);
-          image["src"] = url;
-          const img = `<img src=${url} width=256 height=256 />`;
-          setConversationList([
-            ...newList,
-            {
-              id: uuidv4(),
-              chatId,
-              text: img,
-              originText: img,
-              owner: "ai",
-              date: dayjs().valueOf(),
-              done: true,
-            },
-          ]);
-          scrollToBottom(256);
-          // localStorage.setItem(
-          //   "conversationList",
-          //   JSON.stringify([
-          //     ...newList,
-          //     {
-          //       owner: "ai",
-          //       text: img,
-          //     },
-          //   ])
-          // );
-          await addData(Stores.ChatList, {
-            id: uuidv4(),
-            chatId,
-            text: img,
-            originText: img,
-            owner: "ai",
-            date: dayjs().valueOf(),
-            done: true,
-          });
-          inputRef?.current?.focus();
-          setLoading(false);
-        });
-      } catch (error) {
-        setLoading(false);
-        inputRef?.current?.focus();
-      }
-      return;
-    }
 
     let id = "";
     for (let i = newList?.length - 1; i >= 0; i--) {
@@ -559,7 +444,7 @@ export default function Home() {
         body: JSON.stringify({
           question,
           id,
-          systemMessage: currentRole?.systemMessage,
+          systemMessage: "",
           model: isGPT4 ? "gpt4" : "",
         }),
       });
@@ -608,20 +493,6 @@ export default function Home() {
             },
           ]);
           scrollToBottom();
-          // localStorage.setItem(
-          //   "conversationList",
-          //   JSON.stringify([
-          //     ...newList,
-          //     {
-          //       id: data?.id,
-          //       chatId: "",
-          //       owner: "ai",
-          //       text,
-          //       done,
-          //       originText,
-          //     },
-          //   ])
-          // );
           if (await getData(Stores.ConversationList, data?.id)) {
             await updateData(Stores.ConversationList, data?.id, {
               id: data?.id,
@@ -657,16 +528,6 @@ export default function Home() {
               },
             ]);
             scrollToBottom();
-            // localStorage.setItem(
-            //   "conversationList",
-            //   JSON.stringify([
-            //     ...newList,
-            //     {
-            //       owner: "ai",
-            //       text: DIETEXT,
-            //     },
-            //   ])
-            // );
             await addData(Stores.ConversationList, {
               id: uuidv4(),
               chatId,
@@ -690,19 +551,6 @@ export default function Home() {
               },
             ]);
             scrollToBottom();
-            // localStorage.setItem(
-            //   "conversationList",
-            //   JSON.stringify([
-            //     ...newList,
-            //     {
-            //       ...prevData,
-            //       owner: "ai",
-            //       text,
-            //       done,
-            //       originText,
-            //     },
-            //   ])
-            // );
             await updateData(Stores.ConversationList, prevData?.id, {
               id: prevData?.id,
               chatId,
@@ -740,16 +588,6 @@ export default function Home() {
           },
         ]);
         scrollToBottom();
-        // localStorage.setItem(
-        //   "conversationList",
-        //   JSON.stringify([
-        //     ...newList,
-        //     {
-        //       owner: "ai",
-        //       text: DIETEXT,
-        //     },
-        //   ])
-        // );
         await addData(Stores.ConversationList, {
           id: uuidv4(),
           chatId,
@@ -773,19 +611,6 @@ export default function Home() {
           },
         ]);
         scrollToBottom();
-        // localStorage.setItem(
-        //   "conversationList",
-        //   JSON.stringify([
-        //     ...newList,
-        //     {
-        //       ...prevData,
-        //       owner: "ai",
-        //       text,
-        //       done: true,
-        //       originText,
-        //     },
-        //   ])
-        // );
         await updateData(Stores.ConversationList, prevData?.id, {
           id: prevData?.id,
           chatId,
@@ -923,41 +748,6 @@ export default function Home() {
               </Box>
             );
           })}
-          {/* {ASSISTANTS?.map((item: any, index: number) => (
-            <div className={style.singleItem} key={index}>
-              <Box
-                color="teal"
-                as="span"
-                flex="1"
-                textAlign="left"
-                padding="0px 10px"
-              >
-                {item?.title}
-              </Box>
-              {item?.roleList?.map((childItem: any, childIndex: number) => (
-                <div
-                  className={
-                    currentRole === childItem
-                      ? `${style.childItem}`
-                      : `${style.notActive}`
-                  }
-                  key={childIndex}
-                >
-                  <div
-                    onClick={() => {
-                      setCurrentRole(childItem);
-                      const to = setTimeout(() => {
-                        onClose();
-                        to && clearTimeout(to);
-                      }, 300);
-                    }}
-                  >
-                    {childItem?.title}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ))} */}
         </Box>
         <Box justifyContent="space-around" display="flex" height="40px">
           <Button
@@ -1240,22 +1030,6 @@ export default function Home() {
                   </List>
                 </TabPanel>
                 <TabPanel padding="12px 0px">
-                  {/* <InputGroup size="md" marginBottom="12px"> */}
-                  {/* <InputRightElement>
-                      <IconButton
-                        h="1.75rem"
-                        aria-label="Search"
-                        icon={<SearchIcon />}
-                        colorScheme="green"
-                        variant="outline"
-                        border="0px"
-                        background="transparent"
-                        size="sm"
-                        // onClick={onOpen}
-                      ></IconButton>
-                    </InputRightElement> */}
-                  {/* </InputGroup> */}
-
                   <List spacing={3}>
                     {(searchInputValue?.length
                       ? PROMPT?.filter(
@@ -1452,13 +1226,6 @@ export default function Home() {
               conversationList?.map((info: any, index: any) =>
                 info?.owner === "ai" ? (
                   <div key={info?.id} className={style.aiInfoWrap}>
-                    {/* <NextImage
-                    className={style.avatar}
-                    src={AI_AVATAR}
-                    width={34}
-                    height={34}
-                    alt=""
-                  /> */}
                     <span className={style.avatar}>🤖️</span>
                     <Popover
                       trigger={isMobile ? "click" : "hover"}
