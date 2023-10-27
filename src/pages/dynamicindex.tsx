@@ -144,6 +144,8 @@ export default function Home() {
   const [frequency_penalty, setFrequency_penalty] = useState(0);
   const [top_p, setTop_p] = useState(1);
 
+  const ifNeedScroll = useRef<boolean>(true);
+
   // 删除单个对话的配置项
   const delCurrentChatRef = useRef<any>();
   const {
@@ -203,6 +205,24 @@ export default function Home() {
   useEffect(() => {
     initDBFn();
     setIsCopiedList([]);
+    const infoListWrap = document.querySelector("#infoListWrap") as HTMLElement;
+    function onScroll(e: any) {
+      if (
+        e.target.scrollTop + e.target.clientHeight >=
+        e.target.scrollHeight - 1
+      ) {
+        if (!ifNeedScroll.current) {
+          ifNeedScroll.current = true;
+        }
+      } else {
+        if (ifNeedScroll.current) {
+          ifNeedScroll.current = false;
+        }
+      }
+    }
+    infoListWrap.addEventListener("scroll", onScroll);
+
+    return () => infoListWrap.removeEventListener("scroll", onScroll);
   }, []);
 
   const initDBFn = () => {
@@ -449,7 +469,7 @@ export default function Home() {
       ];
     }
     setConversationList([...newList]);
-    scrollToBottom();
+    scrollToBottom(true);
     await addData(Stores.ConversationList, {
       id: uuidv4(),
       chatId,
@@ -539,7 +559,7 @@ export default function Home() {
               done,
             },
           ]);
-          scrollToBottom();
+          scrollToBottom(ifNeedScroll.current);
           if (await getData(Stores.ConversationList, data?.id)) {
             await updateData(Stores.ConversationList, data?.id, {
               id: data?.id,
@@ -574,7 +594,7 @@ export default function Home() {
                 done: true,
               },
             ]);
-            scrollToBottom();
+            scrollToBottom(true);
             await addData(Stores.ConversationList, {
               id: uuidv4(),
               chatId,
@@ -597,7 +617,7 @@ export default function Home() {
                 done,
               },
             ]);
-            scrollToBottom();
+            scrollToBottom(true);
             await updateData(Stores.ConversationList, prevData?.id, {
               id: prevData?.id,
               chatId,
@@ -634,7 +654,7 @@ export default function Home() {
             date,
           },
         ]);
-        scrollToBottom();
+        scrollToBottom(true);
         await addData(Stores.ConversationList, {
           id: uuidv4(),
           chatId,
@@ -657,7 +677,7 @@ export default function Home() {
             date,
           },
         ]);
-        scrollToBottom();
+        scrollToBottom(true);
         await updateData(Stores.ConversationList, prevData?.id, {
           id: prevData?.id,
           chatId,

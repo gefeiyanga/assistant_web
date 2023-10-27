@@ -14,12 +14,13 @@ export function copyText(options: { text: string; origin?: boolean }) {
   document.body.removeChild(input);
 }
 
-export function scrollToBottom(height = 0) {
-  const infoListWrap = document.querySelector("#infoListWrap");
+export function scrollToBottom(ifNeedScroll: boolean) {
+  const infoListWrap = document.querySelector("#infoListWrap") as HTMLElement;
   const to = setTimeout(() => {
     infoListWrap &&
+      ifNeedScroll &&
       infoListWrap?.scrollHeight > infoListWrap.scrollTop &&
-      (infoListWrap.scrollTop = infoListWrap?.scrollHeight + height);
+      (infoListWrap.scrollTop = infoListWrap?.scrollHeight);
     clearTimeout(to);
-  }, 300);
+  }, 0);
 }
