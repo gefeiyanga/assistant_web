@@ -5,6 +5,7 @@ import {
   AlertDialogBody,
   AlertDialogFooter,
   AlertDialogHeader,
+  AlertDialogCloseButton,
   Button,
 } from "@chakra-ui/react";
 
@@ -32,12 +33,15 @@ const OperationDialog = ({
       leastDestructiveRef={destructiveRef}
       isOpen={isOpenDeleteRecord}
       onClose={onCloseDeleteRecord}
+      closeOnOverlayClick={false}
+      autoFocus={false}
     >
       <AlertDialogOverlay>
         <AlertDialogContent>
           <AlertDialogHeader fontSize="lg" fontWeight="bold">
             {title}
           </AlertDialogHeader>
+          <AlertDialogCloseButton />
 
           <AlertDialogBody>{detail}</AlertDialogBody>
 

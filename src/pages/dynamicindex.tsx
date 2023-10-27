@@ -36,8 +36,13 @@ import {
   Input,
   FormControl,
   FormLabel,
-  FormHelperText,
   FormErrorMessage,
+  Select,
+  Link,
+  FormHelperText,
+  Slider,
+  SliderTrack,
+  SliderThumb,
 } from "@chakra-ui/react";
 import {
   SettingsIcon,
@@ -77,13 +82,21 @@ import {
   getData,
   updateData,
   deleteStore,
+  ModelConfig,
 } from "../../lib/db";
 
 import style from "./index.module.sass";
 
-const md5 = require("blueimp-md5");
-
 const DIETEXT = "Please wait a minute";
+
+const Models = [
+  {
+    value: "gpt-3.5-turbo",
+  },
+  {
+    value: "gpt-4",
+  },
+];
 
 function highlightBlock(str: string, lang?: string) {
   return `<pre style="white-space: pre-wrap" class="code-block-wrapper ${style["code-block-wrapper"]}"><div class="${style["code-block-header"]}"><span class="${style["code-block-header__lang"]}">${lang}</span><span class="code-block-header__copy ${style["code-block-header__copy"]}">复制</span></div><code class="hljs code-block-body ${lang}">${str}</code></pre>`;
@@ -120,10 +133,17 @@ export default function Home() {
   const isFinishInputRef = useRef<boolean>(true);
   const inputRef = useRef<any>(null);
   const [isMobile, setIsMobile] = useState(true);
-  const [isGPT4, setIsGPT4] = useState(false);
   const [interimTranscript, setInterimTranscript] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const { colorMode, toggleColorMode } = useColorMode();
+
+  const [model, setModel] = useState("gpt-3.5-turbo");
+  const [systemMessage, setSystemMessage] = useState("你是一个生成式AI助手");
+  const [temperature, setTemperature] = useState(0.7);
+  const [presence_penalty, setPresence_penalty] = useState(0);
+  const [frequency_penalty, setFrequency_penalty] = useState(0);
+  const [top_p, setTop_p] = useState(1);
+
   // 删除单个对话的配置项
   const delCurrentChatRef = useRef<any>();
   const {
@@ -160,6 +180,12 @@ export default function Home() {
     formState: { errors, isSubmitting },
     reset,
   } = useForm();
+  // Gpt参数设置弹窗配置
+  const {
+    isOpen: isOpenGptConfigModal,
+    onOpen: onOpenGptConfigModal,
+    onClose: onCloseGptConfigModal,
+  } = useDisclosure();
 
   // http signal controller
   const controllerRef = useRef<any>();
@@ -183,6 +209,18 @@ export default function Home() {
     initDB().then(async () => {
       const chatList = await getStoreData<Chat>(Stores.ChatList);
       const promptList = await getStoreData<Prompt>(Stores.PromptList);
+      const modelConfig: any = await getData(
+        Stores.ModelConfig,
+        "modelConfigId"
+      );
+      if (modelConfig) {
+        setModel(modelConfig?.model);
+        setSystemMessage(modelConfig?.systemMessage);
+        setTemperature(modelConfig?.temperature);
+        setPresence_penalty(modelConfig?.presence_penalty);
+        setFrequency_penalty(modelConfig?.frequency_penalty);
+        setTop_p(modelConfig?.top_p);
+      }
       setChatList(
         chatList?.sort((a: Chat, b: Chat) => {
           if (dayjs(a.date) < dayjs(b.date)) {
@@ -274,10 +312,15 @@ export default function Home() {
           "Content-Type": "application/json;charset=UTF-8",
         },
         body: JSON.stringify({
-          question: `你将尝试总结新对话的标题(请不要出现【对话标题：】这种标识)，以使其更清晰和集中。你会分析对话中的关键信息和问题，并利用这些信息生成一个简洁而准确的标题。这将有助于确保对话参与者更容易理解话题并找到他们感兴趣的信息`,
+          question: "帮我生成对话标题，直接输出标题，不需要冒号",
           id,
-          systemMessage: "",
-          model: "",
+          systemMessage:
+            "你将尝试总结新对话的标题(请不要出现【对话标题：】这种标识)，以使其更清晰和集中。你会分析对话中的关键信息和问题，并利用这些信息生成一个简洁而准确的标题。这将有助于确保对话参与者更容易理解话题并找到他们感兴趣的信息",
+          model: "gpt-3.5-turbo",
+          temperature: 0.2,
+          presence_penalty: -1,
+          frequency_penalty: 0,
+          top_p: 0.2,
         }),
       });
 
@@ -444,8 +487,12 @@ export default function Home() {
         body: JSON.stringify({
           question,
           id,
-          systemMessage: "",
-          model: isGPT4 ? "gpt4" : "",
+          systemMessage,
+          model,
+          temperature,
+          presence_penalty,
+          frequency_penalty,
+          top_p,
         }),
       });
 
@@ -912,7 +959,7 @@ export default function Home() {
         onCloseDeleteRecord={() => {
           onClosePromptConfigModal();
         }}
-        title="配置Prompt"
+        title="指挥我"
         detail={
           <Box>
             <Box width="100%" textAlign="center" marginBottom="12px">
@@ -1122,6 +1169,260 @@ export default function Home() {
         }
         footer={false}
       />
+      {/* Gpt配置弹窗 */}
+      <OperationDialog
+        isOpenDeleteRecord={isOpenGptConfigModal}
+        onCloseDeleteRecord={async () => {
+          onCloseGptConfigModal();
+          const modelConfig: any = await getData(
+            Stores.ModelConfig,
+            "modelConfigId"
+          );
+
+          if (modelConfig) {
+            setModel(modelConfig?.model);
+            setSystemMessage(modelConfig?.systemMessage);
+            setTemperature(modelConfig?.temperature);
+            setPresence_penalty(modelConfig?.presence_penalty);
+            setFrequency_penalty(modelConfig?.frequency_penalty);
+            setTop_p(modelConfig?.top_p);
+          } else {
+            setModel("gpt-3.5-turbo");
+            setSystemMessage("你是一个生成式AI助手");
+            setTemperature(0.7);
+            setPresence_penalty(0);
+            setFrequency_penalty(0);
+            setTop_p(1);
+          }
+        }}
+        title="让我更聪明"
+        detail={
+          <FormControl>
+            <Box marginBottom="18px">
+              <FormLabel>模型</FormLabel>
+              <Select
+                onChange={(e: any) => {
+                  setModel(e?.target?.value);
+                }}
+                value={model}
+              >
+                {Models?.map((model) => {
+                  return (
+                    <option key={model?.value} value={model?.value}>
+                      {model?.value}
+                    </option>
+                  );
+                })}
+              </Select>
+            </Box>
+            <Box marginBottom="18px">
+              <FormLabel>
+                初始系统指令
+                <Link
+                  href="#"
+                  fontSize="12px"
+                  onClick={() => setSystemMessage("你是一个生成式AI助手")}
+                  color="teal.500"
+                >
+                  重置为默认值
+                </Link>
+              </FormLabel>
+              <Textarea
+                onChange={(e: any) => setSystemMessage(e?.target?.value)}
+                value={systemMessage}
+              />
+            </Box>
+            <Box marginBottom="18px">
+              <FormLabel>
+                temperature
+                <Text display="inline-block" textAlign="center" width="38px">
+                  {temperature}
+                </Text>
+                <Link
+                  href="#"
+                  fontSize="12px"
+                  onClick={() => setTemperature(0.7)}
+                  color="teal.500"
+                >
+                  重置为默认值
+                </Link>
+              </FormLabel>
+              <FormHelperText>
+                0.8等较高值会使输出更加随机，而0.2等较低值则会使输出更加集中和确定。
+              </FormHelperText>
+              <Slider
+                value={temperature}
+                onChange={(e: any) => {
+                  setTemperature(e);
+                }}
+                min={0.0}
+                max={2.0}
+                step={0.1}
+              >
+                <SliderTrack></SliderTrack>
+                <SliderThumb bgColor="teal.500" />
+              </Slider>
+              <Box
+                display="flex"
+                justifyContent="space-between"
+                alignItems="center"
+                fontSize="12px"
+              >
+                <Text>精确</Text>
+                <Text>中性</Text>
+                <Text>创意</Text>
+              </Box>
+            </Box>
+            <Box marginBottom="18px">
+              <FormLabel>
+                presence_penalty
+                <Text display="inline-block" textAlign="center" width="40px">
+                  {presence_penalty}
+                </Text>
+                <Link
+                  href="#"
+                  fontSize="12px"
+                  onClick={() => setPresence_penalty(0)}
+                  color="teal.500"
+                >
+                  重置为默认值
+                </Link>
+              </FormLabel>
+              <FormHelperText>
+                根据新标记是否出现在文本中对其进行惩罚，从而增加模型谈论新话题的可能性。
+              </FormHelperText>
+              <Slider
+                value={presence_penalty}
+                onChange={(e: any) => {
+                  setPresence_penalty(e);
+                }}
+                min={0}
+                max={2.0}
+                step={0.1}
+              >
+                <SliderTrack></SliderTrack>
+                <SliderThumb bgColor="teal.500" />
+              </Slider>
+              <Box
+                display="flex"
+                justifyContent="space-between"
+                alignItems="center"
+                fontSize="12px"
+              >
+                <Text>平衡</Text>
+                <Text>思维开放</Text>
+              </Box>
+            </Box>
+            <Box marginBottom="18px">
+              <FormLabel>
+                frequency_penalty
+                <Text display="inline-block" textAlign="center" width="40px">
+                  {frequency_penalty}
+                </Text>
+                <Link
+                  href="#"
+                  fontSize="12px"
+                  onClick={() => setFrequency_penalty(0)}
+                  color="teal.500"
+                >
+                  重置为默认值
+                </Link>
+              </FormLabel>
+              <FormHelperText>
+                根据新标记在文本中的现有频率对其进行惩罚，从而降低模型逐字重复同一行的可能性。
+              </FormHelperText>
+              <Slider
+                value={frequency_penalty}
+                onChange={(e: any) => {
+                  setFrequency_penalty(e);
+                }}
+                min={0}
+                max={2.0}
+                step={0.1}
+              >
+                <SliderTrack></SliderTrack>
+                <SliderThumb bgColor="teal.500" />
+              </Slider>
+              <Box
+                display="flex"
+                justifyContent="space-between"
+                alignItems="center"
+                fontSize="12px"
+              >
+                <Text>平衡</Text>
+                <Text>减少重复</Text>
+              </Box>
+            </Box>
+            <Box marginBottom="18px">
+              <FormLabel>
+                top_p
+                <Text display="inline-block" textAlign="center" width="40px">
+                  {top_p}
+                </Text>
+                <Link
+                  href="#"
+                  fontSize="12px"
+                  onClick={() => setTop_p(1)}
+                  color="teal.500"
+                >
+                  重置为默认值
+                </Link>
+              </FormLabel>
+              <FormHelperText>
+                temperature采样的另一种方法top_p采样，即模型考虑概率质量为top_p的标记的结果。因此，0.1意味着只考虑概率最高的10%的文字。
+              </FormHelperText>
+              <Slider
+                value={top_p}
+                onChange={(e: any) => {
+                  setTop_p(e);
+                }}
+                min={0}
+                max={1.0}
+                step={0.1}
+              >
+                <SliderTrack></SliderTrack>
+                <SliderThumb bgColor="teal.500" />
+              </Slider>
+              <Box
+                display="flex"
+                justifyContent="space-between"
+                alignItems="center"
+                fontSize="12px"
+              >
+                <Text>精确</Text>
+                <Text>创意</Text>
+              </Box>
+            </Box>
+          </FormControl>
+        }
+        confirm={async () => {
+          onCloseGptConfigModal();
+          const modelConfig: any = await getData(
+            Stores.ModelConfig,
+            "modelConfigId"
+          );
+          if (modelConfig) {
+            await updateData(Stores.ModelConfig, "modelConfigId", {
+              model,
+              systemMessage,
+              temperature,
+              presence_penalty,
+              frequency_penalty,
+              top_p,
+            });
+          } else {
+            await addData(Stores.ModelConfig, {
+              id: "modelConfigId",
+              model,
+              systemMessage,
+              temperature,
+              presence_penalty,
+              frequency_penalty,
+              top_p,
+            });
+          }
+        }}
+      />
       {!isMobile && (
         <aside
           style={{
@@ -1176,8 +1477,7 @@ export default function Home() {
                   cursor="pointer"
                   onClick={() => onOpenPromptConfigModal()}
                 >
-                  {/* {currentRole?.title} */}
-                  Prompt
+                  指挥我
                 </Badge>
               </Stack>
               <Stack style={{ marginLeft: 14 }} direction="row">
@@ -1186,10 +1486,10 @@ export default function Home() {
                   colorScheme="teal"
                   cursor="pointer"
                   onClick={() => {
-                    setIsGPT4(!isGPT4);
+                    onOpenGptConfigModal();
                   }}
                 >
-                  {isGPT4 ? "GPT4" : "GPT3"}
+                  {model}
                 </Badge>
               </Stack>
             </Stack>

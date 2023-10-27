@@ -2,7 +2,7 @@ import { Dayjs } from "dayjs";
 
 let request: IDBOpenDBRequest;
 let db: IDBDatabase;
-let version = 2;
+let version = 5;
 
 export interface Chat {
   id: string;
@@ -23,10 +23,20 @@ export interface Prompt {
   act: string;
   prompt: string;
 }
+export interface ModelConfig {
+  id: number | string;
+  systemMessage: string;
+  model: string;
+  temperature: number;
+  presence_penalty: number;
+  frequency_penalty: number;
+  top_p: number;
+}
 export enum Stores {
   ChatList = "chatList",
   ConversationList = "conversationList",
   PromptList = "promptList",
+  ModelConfig = "modelConfig",
 }
 
 export const initDB = (): Promise<boolean | IDBDatabase> => {
@@ -63,6 +73,26 @@ export const initDB = (): Promise<boolean | IDBDatabase> => {
         });
         objectStore.createIndex("act", "act", { unique: false });
         objectStore.createIndex("prompt", "prompt", { unique: false });
+      }
+      if (!db.objectStoreNames.contains(Stores.ModelConfig)) {
+        // console.log("Creating modelConfig store");
+        const objectStore = db.createObjectStore(Stores.ModelConfig, {
+          keyPath: "id",
+        });
+        objectStore.createIndex("systemMessage", "systemMessage", {
+          unique: false,
+        });
+        objectStore.createIndex("model", "model", { unique: false });
+        objectStore.createIndex("temperature", "temperature", {
+          unique: false,
+        });
+        objectStore.createIndex("presence_penalty", "presence_penalty", {
+          unique: false,
+        });
+        objectStore.createIndex("frequency_penalty", "frequency_penalty", {
+          unique: false,
+        });
+        objectStore.createIndex("top_p", "top_p", { unique: false });
       }
       // no need to resolve here
     };
