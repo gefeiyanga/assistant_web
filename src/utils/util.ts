@@ -16,11 +16,13 @@ export function copyText(options: { text: string; origin?: boolean }) {
 
 export function scrollToBottom(ifNeedScroll: boolean) {
   const infoListWrap = document.querySelector("#infoListWrap") as HTMLElement;
-  const to = setTimeout(() => {
-    infoListWrap &&
-      ifNeedScroll &&
-      infoListWrap?.scrollHeight > infoListWrap.scrollTop &&
-      (infoListWrap.scrollTop = infoListWrap?.scrollHeight);
-    clearTimeout(to);
-  }, 200);
+  if (ifNeedScroll) {
+    const to = setTimeout(() => {
+      infoListWrap &&
+        ifNeedScroll &&
+        infoListWrap?.scrollHeight > infoListWrap.scrollTop &&
+        (infoListWrap.scrollTop = infoListWrap?.scrollHeight);
+      clearTimeout(to);
+    }, 200);
+  }
 }
