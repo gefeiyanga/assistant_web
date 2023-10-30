@@ -22,5 +22,5 @@ export function scrollToBottom(ifNeedScroll: boolean) {
       infoListWrap?.scrollHeight > infoListWrap.scrollTop &&
       (infoListWrap.scrollTop = infoListWrap?.scrollHeight);
     clearTimeout(to);
-  }, 0);
+  }, 200);
 }
