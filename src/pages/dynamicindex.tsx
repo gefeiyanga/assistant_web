@@ -239,6 +239,12 @@ export default function Home() {
             ? "gpt-4-1106-vision-preview"
             : modelConfig?.model
         );
+        if (modelConfig?.model?.search("gpt-4") > -1) {
+          await updateData(Stores.ModelConfig, "modelConfigId", {
+            ...modelConfig,
+            model: "gpt-4-1106-vision-preview",
+          });
+        }
         setSystemMessage(modelConfig?.systemMessage);
         setTemperature(modelConfig?.temperature);
         setPresence_penalty(modelConfig?.presence_penalty);
