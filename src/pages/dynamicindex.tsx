@@ -94,7 +94,7 @@ const Models = [
     value: "gpt-3.5-turbo",
   },
   {
-    value: "gpt-4",
+    value: "gpt-4-1106-vision-preview",
   },
 ];
 
@@ -1510,6 +1510,10 @@ export default function Home() {
                   variant="outline"
                   colorScheme="teal"
                   cursor="pointer"
+                  maxWidth="110px"
+                  overflow="hidden"
+                  textOverflow="ellipsis"
+                  whiteSpace="nowrap"
                   onClick={() => {
                     onOpenGptConfigModal();
                   }}
