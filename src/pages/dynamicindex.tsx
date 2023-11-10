@@ -94,7 +94,7 @@ const Models = [
     value: "gpt-3.5-turbo",
   },
   {
-    value: "gpt-4-1106-vision-preview",
+    value: "gpt-4-1106-preview",
   },
 ];
 
@@ -236,13 +236,13 @@ export default function Home() {
       if (modelConfig) {
         setModel(
           modelConfig?.model?.search("gpt-4") > -1
-            ? "gpt-4-1106-vision-preview"
+            ? "gpt-4-1106-preview"
             : modelConfig?.model
         );
         if (modelConfig?.model?.search("gpt-4") > -1) {
           await updateData(Stores.ModelConfig, "modelConfigId", {
             ...modelConfig,
-            model: "gpt-4-1106-vision-preview",
+            model: "gpt-4-1106-preview",
           });
         }
         setSystemMessage(modelConfig?.systemMessage);
