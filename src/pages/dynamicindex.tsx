@@ -234,7 +234,11 @@ export default function Home() {
         "modelConfigId"
       );
       if (modelConfig) {
-        setModel(modelConfig?.model);
+        setModel(
+          modelConfig?.model?.search("gpt-4") > -1
+            ? "gpt-4-1106-vision-preview"
+            : modelConfig?.model
+        );
         setSystemMessage(modelConfig?.systemMessage);
         setTemperature(modelConfig?.temperature);
         setPresence_penalty(modelConfig?.presence_penalty);
