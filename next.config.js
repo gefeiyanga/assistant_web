@@ -21,8 +21,13 @@ const nextConfig = {
         // destination: "https://60.204.155.1/chat",
       },
       {
-        source: "/translate",
-        destination: "https://fanyi-api.baidu.com/api/trans/vip/translate",
+        source: "/bard-chat",
+        destination: "http://127.0.0.1:3000/bard/chat",
+        // destination: "https://60.204.155.1/chat",
+      },
+      {
+        source: "/set-cookies",
+        destination: "http://127.0.0.1:3000/bard/set-cookies",
       },
     ];
   },

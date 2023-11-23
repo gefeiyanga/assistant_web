@@ -38,7 +38,6 @@ import {
   FormLabel,
   FormErrorMessage,
   Select,
-  Link,
   FormHelperText,
   Slider,
   SliderTrack,
@@ -63,6 +62,7 @@ import { CopyToClipboard } from "react-copy-to-clipboard";
 import { saveAs } from "file-saver";
 import dayjs from "dayjs";
 import { v4 as uuidv4 } from "uuid";
+import Image from "next/image";
 
 import PROMPT from "@/configs/prompts.json";
 import useCopyCode from "@/hooks/useCopyCode";
@@ -70,6 +70,8 @@ import { scrollToBottom } from "@/utils/util";
 import InitLanguages from "@/utils/initLanguages";
 import SpeechRecognition from "@/components/Microphone";
 import OperationDialog from "@/components/OperationDialog";
+import Gpt3Logo from "@/components/Gpt3Logo";
+import Gpt4Logo from "@/components/Gpt4Logo";
 import {
   Stores,
   Chat,
@@ -82,8 +84,8 @@ import {
   getData,
   updateData,
   deleteStore,
-  ModelConfig,
 } from "../../lib/db";
+import BARD_LOGO from "public/icons/bard.png";
 
 import style from "./index.module.sass";
 
@@ -94,7 +96,10 @@ const Models = [
     value: "gpt-3.5-turbo",
   },
   {
-    value: "gpt-4-1106-preview",
+    value: "gpt-4-vision-preview",
+  },
+  {
+    value: "bard",
   },
 ];
 
@@ -137,7 +142,8 @@ export default function Home() {
   const [isListening, setIsListening] = useState(false);
   const { colorMode, toggleColorMode } = useColorMode();
 
-  const [model, setModel] = useState("gpt-3.5-turbo");
+  const [model, setModel] = useState("...");
+  const [nextModel, setNextModel] = useState("");
   const [systemMessage, setSystemMessage] = useState("你是一个生成式AI助手");
   const [temperature, setTemperature] = useState(0.7);
   const [presence_penalty, setPresence_penalty] = useState(0);
@@ -145,6 +151,11 @@ export default function Home() {
   const [top_p, setTop_p] = useState(1);
 
   const ifNeedScroll = useRef<boolean>(true);
+  const [cookiesBtnLoading, setCookiesBtnLoading] = useState(false);
+
+  // bard cookie参数
+  const [_1psid, set_1psid] = useState("");
+  const [_1psidts, set_1psidts] = useState("");
 
   // 删除单个对话的配置项
   const delCurrentChatRef = useRef<any>();
@@ -187,6 +198,13 @@ export default function Home() {
     isOpen: isOpenGptConfigModal,
     onOpen: onOpenGptConfigModal,
     onClose: onCloseGptConfigModal,
+  } = useDisclosure();
+
+  // 切换模型生成新对话的提示弹窗
+  const {
+    isOpen: isOpenNewChatAlertModal,
+    onOpen: onOpenNewChatAlertModal,
+    onClose: onCloseNewChatAlertModal,
   } = useDisclosure();
 
   // http signal controller
@@ -236,13 +254,13 @@ export default function Home() {
       if (modelConfig) {
         setModel(
           modelConfig?.model?.search("gpt-4") > -1
-            ? "gpt-4-1106-preview"
+            ? "gpt-4-vision-preview"
             : modelConfig?.model
         );
         if (modelConfig?.model?.search("gpt-4") > -1) {
           await updateData(Stores.ModelConfig, "modelConfigId", {
             ...modelConfig,
-            model: "gpt-4-1106-preview",
+            model: "gpt-4-vision-preview",
           });
         }
         setSystemMessage(modelConfig?.systemMessage);
@@ -250,6 +268,8 @@ export default function Home() {
         setPresence_penalty(modelConfig?.presence_penalty);
         setFrequency_penalty(modelConfig?.frequency_penalty);
         setTop_p(modelConfig?.top_p);
+      } else {
+        setModel("gpt-3.5-turbo");
       }
       setChatList(
         chatList?.sort((a: Chat, b: Chat) => {
@@ -322,7 +342,7 @@ export default function Home() {
 
   const summarize = async (
     chatList: Chat[],
-    id: string,
+    id: string | Object,
     chatId: string,
     date: number
   ) => {
@@ -334,79 +354,105 @@ export default function Home() {
     setChatList([...chatList, { id: chatId, title: "新对话", date }]);
     setCurrentChat(chatId);
 
-    let originText = "";
-    try {
-      const response: any = await fetch("/chat", {
+    if (id instanceof Object) {
+      let ids = { ...id };
+      const data: any = await fetch("/bard-chat", {
         method: "POST",
         headers: {
           "Content-Type": "application/json;charset=UTF-8",
         },
         body: JSON.stringify({
-          question: "帮我生成对话标题，直接输出标题，不需要冒号",
-          id,
-          systemMessage:
-            "你将尝试总结新对话的标题(请不要出现【对话标题：】这种标识)，以使其更清晰和集中。你会分析对话中的关键信息和问题，并利用这些信息生成一个简洁而准确的标题。这将有助于确保对话参与者更容易理解话题并找到他们感兴趣的信息",
-          model: "gpt-3.5-turbo",
-          temperature: 0.2,
-          presence_penalty: -1,
-          frequency_penalty: 0,
-          top_p: 0.2,
+          question:
+            "15个字总结我们已上对话，注意不要出现【好的，以下是 15 个字的总结：】类似文字",
+          ...ids,
         }),
       });
+      const response = await data?.json();
+      if (response?.content) {
+        setChatList([
+          ...chatList,
+          { id: chatId, title: response?.content, date },
+        ]);
+        updateData(Stores.ChatList, chatId, { title: response?.content });
+      }
+    } else {
+      let originText = "";
+      try {
+        const response: any = await fetch("/chat", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json;charset=UTF-8",
+          },
+          body: JSON.stringify({
+            question: "帮我生成对话标题，直接输出标题，不需要冒号",
+            id,
+            systemMessage:
+              "你将尝试总结新对话的标题(请不要出现【对话标题：】这种标识)，以使其更清晰和集中。你会分析对话中的关键信息和问题，并利用这些信息生成一个简洁而准确的标题。这将有助于确保对话参与者更容易理解话题并找到他们感兴趣的信息",
+            model: "gpt-3.5-turbo",
+            temperature: 0.2,
+            presence_penalty: -1,
+            frequency_penalty: 0,
+            top_p: 0.2,
+          }),
+        });
 
-      // instead of response.json() and other methods
-      const reader = response.body.getReader();
-      let decoder = new TextDecoder("utf-8");
+        // instead of response.json() and other methods
+        const reader = response.body.getReader();
+        let decoder = new TextDecoder("utf-8");
 
-      // infinite loop while the body is downloading
-      while (true) {
-        // done is true for the last chunk
-        // value is Uint8Array of the chunk bytes
-        const { done, value } = await reader.read();
+        // infinite loop while the body is downloading
+        while (true) {
+          // done is true for the last chunk
+          // value is Uint8Array of the chunk bytes
+          const { done, value } = await reader.read();
 
-        // let encodedString = String.fromCodePoint.apply(null, value);
-        // let decodedString = decodeURIComponent(escape(encodedString)); //没有这一步中文会乱码
-        let decodedString = decoder.decode(value);
-        // Always process the final line
-        const lastIndex = decodedString.lastIndexOf(
-          "\n",
-          decodedString.length - 2
-        );
-        let chunk = decodedString;
-        if (lastIndex !== -1) {
-          chunk = decodedString.substring(lastIndex);
-        }
-        try {
-          const data = JSON.parse(chunk);
-
-          if (data?.text) {
-            originText = data?.text;
+          // let encodedString = String.fromCodePoint.apply(null, value);
+          // let decodedString = decodeURIComponent(escape(encodedString)); //没有这一步中文会乱码
+          let decodedString = decoder.decode(value);
+          // Always process the final line
+          const lastIndex = decodedString.lastIndexOf(
+            "\n",
+            decodedString.length - 2
+          );
+          let chunk = decodedString;
+          if (lastIndex !== -1) {
+            chunk = decodedString.substring(lastIndex);
           }
-          setChatList([...chatList, { id: chatId, title: originText, date }]);
-          updateData(Stores.ChatList, chatId, { title: originText });
-        } catch (error) {
-          if (!originText?.trim()?.length) {
-            setChatList([...chatList, { id: chatId, title: "新对话", date }]);
-            updateData(Stores.ChatList, chatId, { title: "新对话" });
-          } else {
+          try {
+            const data = JSON.parse(chunk);
+
+            if (data?.text) {
+              originText = data?.text;
+            }
             setChatList([...chatList, { id: chatId, title: originText, date }]);
             updateData(Stores.ChatList, chatId, { title: originText });
+          } catch (error) {
+            if (!originText?.trim()?.length) {
+              setChatList([...chatList, { id: chatId, title: "新对话", date }]);
+              updateData(Stores.ChatList, chatId, { title: "新对话" });
+            } else {
+              setChatList([
+                ...chatList,
+                { id: chatId, title: originText, date },
+              ]);
+              updateData(Stores.ChatList, chatId, { title: originText });
+            }
+          }
+
+          if (done) {
+            break;
           }
         }
+      } catch (error) {
+        console.log(error);
 
-        if (done) {
-          break;
+        if (!originText?.trim()?.length) {
+          setChatList([...chatList, { id: chatId, title: "新对话", date }]);
+          updateData(Stores.ChatList, chatId, { title: "新对话" });
+        } else {
+          setChatList([...chatList, { id: chatId, title: originText, date }]);
+          updateData(Stores.ChatList, chatId, { title: originText });
         }
-      }
-    } catch (error) {
-      console.log(error);
-
-      if (!originText?.trim()?.length) {
-        setChatList([...chatList, { id: chatId, title: "新对话", date }]);
-        updateData(Stores.ChatList, chatId, { title: "新对话" });
-      } else {
-        setChatList([...chatList, { id: chatId, title: originText, date }]);
-        updateData(Stores.ChatList, chatId, { title: originText });
       }
     }
   };
@@ -451,6 +497,7 @@ export default function Home() {
           text: "",
           originText: "",
           owner: "time",
+          model,
           date: dayjs().valueOf(),
           done: true,
         },
@@ -460,6 +507,7 @@ export default function Home() {
           text: inputValue,
           originText: inputValue,
           owner: "me",
+          model,
           date: dayjs().valueOf(),
           done: true,
         },
@@ -473,6 +521,7 @@ export default function Home() {
           text: inputValue,
           originText: inputValue,
           owner: "me",
+          model,
           date: dayjs().valueOf(),
           done: true,
         },
@@ -486,222 +535,344 @@ export default function Home() {
       text: inputValue,
       originText: inputValue,
       owner: "me",
+      model,
       done: true,
       date: dayjs().valueOf(),
     });
     const question = inputValue;
     setInputValue("");
 
-    let id = "";
-    for (let i = newList?.length - 1; i >= 0; i--) {
-      if (newList[i]?.owner === "ai" && newList[i]?.id?.length) {
-        id = newList[i]?.id || "";
-        break;
-      }
-    }
-
     controllerRef.current = new AbortController();
     const signal = controllerRef.current.signal;
-    let text = "",
-      originText = "";
 
-    let prevData;
-    const date = dayjs().valueOf();
-    try {
-      const response: any = await fetch("/chat", {
-        method: "POST",
-        signal,
-        headers: {
-          "Content-Type": "application/json;charset=UTF-8",
-        },
-        body: JSON.stringify({
-          question,
-          id,
-          systemMessage,
-          model,
-          temperature,
-          presence_penalty,
-          frequency_penalty,
-          top_p,
-        }),
-      });
-
-      // instead of response.json() and other methods
-      const reader = response.body.getReader();
-      let decoder = new TextDecoder("utf-8");
-
-      // infinite loop while the body is downloading
-      while (true) {
-        // done is true for the last chunk
-        // value is Uint8Array of the chunk bytes
-        const { done, value } = await reader.read();
-
-        // let encodedString = String.fromCodePoint.apply(null, value);
-        // let decodedString = decodeURIComponent(escape(encodedString)); //没有这一步中文会乱码
-        let decodedString = decoder.decode(value);
-        // Always process the final line
-        const lastIndex = decodedString.lastIndexOf(
-          "\n",
-          decodedString.length - 2
-        );
-        let chunk = decodedString;
-        if (lastIndex !== -1) {
-          chunk = decodedString.substring(lastIndex);
+    if (model === "bard") {
+      let ids = null;
+      for (let i = newList?.length - 1; i >= 0; i--) {
+        if (newList[i]?.owner === "ai" && newList[i]?.ids) {
+          ids = newList[i]?.ids;
+          break;
         }
-        try {
-          const data = JSON.parse(chunk);
-          prevData = JSON.parse(chunk);
+      }
+      const date = dayjs().valueOf();
+      let id = uuidv4();
+      try {
+        const data: any = await fetch("/bard-chat", {
+          method: "POST",
+          signal,
+          headers: {
+            "Content-Type": "application/json;charset=UTF-8",
+          },
+          body: JSON.stringify({
+            question,
+            ...ids,
+          }),
+        });
+        const response: any = await data.json();
 
-          if (data?.text) {
-            originText = data?.text;
-            text = mdi.render(data?.text);
-          }
-
-          setConversationList([
-            ...newList,
-            {
-              id: data?.id,
-              chatId,
-              owner: "ai",
-              text,
-              originText,
-              date,
-              done,
-            },
+        if (response?.code !== 200 || !response?.success) {
+          toast({
+            description: response?.message,
+            duration: 3000,
+            status: "warning",
+            variant: "solid",
+          });
+        }
+        let id = uuidv4();
+        const text = mdi.render(response?.content);
+        // const text = response?.content;
+        setConversationList([
+          ...newList,
+          {
+            id,
+            ids: response?.ids,
+            images: response?.images,
+            chatId,
+            owner: "ai",
+            model,
+            text,
+            originText: response?.content,
+            date,
+            done: true,
+          },
+        ]);
+        scrollToBottom(true);
+        if (!(await getData(Stores.ChatList, chatId))) {
+          // summarize(chatList, response?.ids, chatId, date);
+          addData(Stores.ChatList, {
+            id: chatId,
+            title: response?.content?.slice(0, 20),
+            date,
+          });
+          setChatList([
+            ...chatList,
+            { id: chatId, title: response?.content?.slice(0, 20), date },
           ]);
-          scrollToBottom(ifNeedScroll.current);
-          if (await getData(Stores.ConversationList, data?.id)) {
-            await updateData(Stores.ConversationList, data?.id, {
-              id: data?.id,
-              chatId,
-              owner: "ai",
-              text,
-              originText,
-              done,
-            });
-          } else {
-            await addData(Stores.ConversationList, {
-              id: data?.id,
-              chatId,
-              owner: "ai",
-              text,
-              originText,
-              date,
-              done,
-            });
+          setCurrentChat(chatId);
+        }
+        await addData(Stores.ConversationList, {
+          id,
+          ids: response?.ids,
+          images: response?.images,
+          chatId,
+          owner: "ai",
+          model,
+          text,
+          originText: response?.content,
+          date,
+          done: true,
+        });
+      } catch (error) {
+        console.log(error);
+        setConversationList([
+          ...newList,
+          {
+            id,
+            ids: {},
+            images: [],
+            chatId,
+            owner: "ai",
+            model,
+            text: DIETEXT,
+            originText: DIETEXT,
+            date,
+            done: true,
+          },
+        ]);
+        scrollToBottom(true);
+        await addData(Stores.ConversationList, {
+          id,
+          ids: {},
+          images: [],
+          chatId,
+          owner: "ai",
+          model,
+          text: DIETEXT,
+          originText: DIETEXT,
+          date,
+          done: true,
+        });
+      }
+    } else {
+      let id = "";
+      for (let i = newList?.length - 1; i >= 0; i--) {
+        if (newList[i]?.owner === "ai" && newList[i]?.id?.length) {
+          id = newList[i]?.id || "";
+          break;
+        }
+      }
+      let text = "",
+        originText = "";
+
+      let prevData;
+      const date = dayjs().valueOf();
+      try {
+        const response: any = await fetch("/chat", {
+          method: "POST",
+          signal,
+          headers: {
+            "Content-Type": "application/json;charset=UTF-8",
+          },
+          body: JSON.stringify({
+            question,
+            id,
+            systemMessage,
+            model,
+            temperature,
+            presence_penalty,
+            frequency_penalty,
+            top_p,
+          }),
+        });
+
+        // instead of response.json() and other methods
+        const reader = response.body.getReader();
+        let decoder = new TextDecoder("utf-8");
+
+        // infinite loop while the body is downloading
+        while (true) {
+          // done is true for the last chunk
+          // value is Uint8Array of the chunk bytes
+          const { done, value } = await reader.read();
+
+          // let encodedString = String.fromCodePoint.apply(null, value);
+          // let decodedString = decodeURIComponent(escape(encodedString)); //没有这一步中文会乱码
+          let decodedString = decoder.decode(value);
+          // Always process the final line
+          const lastIndex = decodedString.lastIndexOf(
+            "\n",
+            decodedString.length - 2
+          );
+          let chunk = decodedString;
+          if (lastIndex !== -1) {
+            chunk = decodedString.substring(lastIndex);
           }
-        } catch (error) {
-          if (!text?.trim()?.length) {
+          try {
+            const data = JSON.parse(chunk);
+            prevData = JSON.parse(chunk);
+
+            if (data?.text) {
+              originText = data?.text;
+              text = mdi.render(data?.text);
+            }
+
             setConversationList([
               ...newList,
               {
-                id: uuidv4(),
+                id: data?.id,
                 chatId,
                 owner: "ai",
-                text: DIETEXT,
-                originText: DIETEXT,
-                date,
-                done: true,
-              },
-            ]);
-            scrollToBottom(true);
-            await addData(Stores.ConversationList, {
-              id: uuidv4(),
-              chatId,
-              owner: "ai",
-              text: DIETEXT,
-              originText: DIETEXT,
-              date,
-              done: true,
-            });
-          } else {
-            setConversationList([
-              ...newList,
-              {
-                id: prevData?.id,
-                chatId,
-                owner: "ai",
+                model,
                 text,
                 originText,
                 date,
                 done,
               },
             ]);
-            scrollToBottom(true);
-            await updateData(Stores.ConversationList, prevData?.id, {
-              id: prevData?.id,
+            scrollToBottom(ifNeedScroll.current);
+            if (await getData(Stores.ConversationList, data?.id)) {
+              await updateData(Stores.ConversationList, data?.id, {
+                id: data?.id,
+                chatId,
+                owner: "ai",
+                model,
+                text,
+                originText,
+                done,
+              });
+            } else {
+              await addData(Stores.ConversationList, {
+                id: data?.id,
+                chatId,
+                owner: "ai",
+                model,
+                text,
+                originText,
+                date,
+                done,
+              });
+            }
+          } catch (error) {
+            if (!text?.trim()?.length) {
+              setConversationList([
+                ...newList,
+                {
+                  id: uuidv4(),
+                  chatId,
+                  owner: "ai",
+                  model,
+                  text: DIETEXT,
+                  originText: DIETEXT,
+                  date,
+                  done: true,
+                },
+              ]);
+              scrollToBottom(true);
+              await addData(Stores.ConversationList, {
+                id: uuidv4(),
+                chatId,
+                owner: "ai",
+                model,
+                text: DIETEXT,
+                originText: DIETEXT,
+                date,
+                done: true,
+              });
+            } else {
+              setConversationList([
+                ...newList,
+                {
+                  id: prevData?.id,
+                  chatId,
+                  owner: "ai",
+                  model,
+                  text,
+                  originText,
+                  date,
+                  done,
+                },
+              ]);
+              scrollToBottom(true);
+              await updateData(Stores.ConversationList, prevData?.id, {
+                id: prevData?.id,
+                chatId,
+                owner: "ai",
+                model,
+                text,
+                done,
+                originText,
+              });
+            }
+          }
+
+          if (done) {
+            if (!(await getData(Stores.ChatList, chatId))) {
+              summarize(chatList, prevData?.id, chatId, date);
+            }
+            break;
+          }
+        }
+        setLoading(false);
+        inputRef?.current?.focus();
+      } catch (error) {
+        console.log(error);
+
+        if (!text?.trim()?.length) {
+          setConversationList([
+            ...newList,
+            {
+              id: uuidv4(),
               chatId,
               owner: "ai",
-              text,
-              done,
-              originText,
-            });
-          }
-        }
-
-        if (done) {
-          if (!(await getData(Stores.ChatList, chatId))) {
-            summarize(chatList, prevData?.id, chatId, date);
-          }
-          break;
-        }
-      }
-      setLoading(false);
-      inputRef?.current?.focus();
-    } catch (error) {
-      console.log(error);
-
-      if (!text?.trim()?.length) {
-        setConversationList([
-          ...newList,
-          {
+              model,
+              text: DIETEXT,
+              originText: DIETEXT,
+              done: true,
+              date,
+            },
+          ]);
+          scrollToBottom(true);
+          await addData(Stores.ConversationList, {
             id: uuidv4(),
             chatId,
             owner: "ai",
+            model,
             text: DIETEXT,
             originText: DIETEXT,
             done: true,
             date,
-          },
-        ]);
-        scrollToBottom(true);
-        await addData(Stores.ConversationList, {
-          id: uuidv4(),
-          chatId,
-          owner: "ai",
-          text: DIETEXT,
-          originText: DIETEXT,
-          done: true,
-          date,
-        });
-      } else {
-        setConversationList([
-          ...newList,
-          {
+          });
+        } else {
+          setConversationList([
+            ...newList,
+            {
+              id: prevData?.id,
+              chatId,
+              owner: "ai",
+              model,
+              text,
+              done: true,
+              originText,
+              date,
+            },
+          ]);
+          scrollToBottom(true);
+          await updateData(Stores.ConversationList, prevData?.id, {
             id: prevData?.id,
             chatId,
             owner: "ai",
+            model,
             text,
             done: true,
             originText,
-            date,
-          },
-        ]);
-        scrollToBottom(true);
-        await updateData(Stores.ConversationList, prevData?.id, {
-          id: prevData?.id,
-          chatId,
-          owner: "ai",
-          text,
-          done: true,
-          originText,
-        });
+          });
+        }
       }
-
-      setLoading(false);
-      inputRef?.current?.focus();
     }
+
+    setLoading(false);
+    inputRef?.current?.focus();
   };
+
   function debounce(fn: any, delay = 200) {
     let timer: any;
 
@@ -864,6 +1035,53 @@ export default function Home() {
     );
   };
 
+  const setCookies = () => {
+    if (!_1psid?.length || !_1psidts?.length) {
+      toast({
+        description: "请先填写cookies",
+        duration: 3000,
+        status: "warning",
+        variant: "solid",
+      });
+      return;
+    }
+    setCookiesBtnLoading(true);
+    fetch("/set-cookies", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json;charset=UTF-8",
+      },
+      body: JSON.stringify({
+        "__Secure-1PSID": _1psid,
+        "__Secure-1PSIDTS": _1psidts,
+      }),
+    })
+      .then(async (response: Response) => {
+        if (response?.ok) {
+          const result: any = await response.json();
+
+          if (result?.code == 200 && result?.success) {
+            toast({
+              description: result?.message || "Bard ai cookies更新成功",
+              duration: 3000,
+              variant: "solid",
+            });
+            onCloseGptConfigModal();
+          } else {
+            toast({
+              description: result?.message || "Bard ai cookies更新失败",
+              duration: 3000,
+              status: "error",
+              variant: "solid",
+            });
+          }
+        }
+      })
+      .finally(() => {
+        setCookiesBtnLoading(false);
+      });
+  };
+
   return (
     <Container
       className={style.containerWrap}
@@ -922,6 +1140,38 @@ export default function Home() {
         }}
         title="确认删除"
         detail="确定要删除所有对话吗？"
+      />
+
+      {/* 切换模型生成新对话的提示弹窗 */}
+      <OperationDialog
+        isOpenDeleteRecord={isOpenNewChatAlertModal}
+        onCloseDeleteRecord={onCloseNewChatAlertModal}
+        confirm={async () => {
+          setModel(nextModel);
+          onCloseNewChatAlertModal();
+
+          onCloseGptConfigModal();
+          const modelConfig: any = await getData(
+            Stores.ModelConfig,
+            "modelConfigId"
+          );
+          if (modelConfig) {
+            await updateData(Stores.ModelConfig, "modelConfigId", {
+              model: nextModel,
+              systemMessage,
+              temperature,
+              presence_penalty,
+              frequency_penalty,
+              top_p,
+            });
+          }
+
+          controllerRef.current?.abort();
+          setCurrentChat("");
+          inputRef?.current?.focus();
+        }}
+        title="开启新对话"
+        detail="仅可在新对话中切换不同类型的模型，是否要开启新对话？"
       />
 
       {/* 自定义添加prompt */}
@@ -1068,7 +1318,6 @@ export default function Home() {
                                         break;
                                       }
                                     }
-                                    console.log(index);
                                     let newCollectPromptList = [
                                       ...collectPromptList,
                                     ];
@@ -1231,8 +1480,19 @@ export default function Home() {
             <Box marginBottom="18px">
               <FormLabel>模型</FormLabel>
               <Select
-                onChange={(e: any) => {
-                  setModel(e?.target?.value);
+                onChange={async (e: any) => {
+                  if (
+                    conversationList?.length &&
+                    ((model === "bard" &&
+                      e?.target?.value?.search("gpt") > -1) ||
+                      (model?.search("gpt") > -1 &&
+                        e?.target?.value === "bard"))
+                  ) {
+                    setNextModel(e?.target?.value);
+                    onOpenNewChatAlertModal();
+                  } else {
+                    setModel(e?.target?.value);
+                  }
                 }}
                 value={model}
               >
@@ -1245,189 +1505,234 @@ export default function Home() {
                 })}
               </Select>
             </Box>
-            <Box marginBottom="18px">
-              <FormLabel>
-                初始系统指令
+            {model === "bard" ? (
+              <>
+                <Box marginBottom="18px">
+                  <FormLabel>__Secure-1PSID</FormLabel>
+                  <Input
+                    value={_1psid}
+                    onChange={(e) => set_1psid(e?.target?.value)}
+                  />
+                </Box>
+                <Box marginBottom="18px">
+                  <FormLabel>__Secure-1PSIDTS</FormLabel>
+                  <Input
+                    value={_1psidts}
+                    onChange={(e) => set_1psidts(e?.target?.value)}
+                  />
+                </Box>
                 <Button
+                  isLoading={cookiesBtnLoading}
+                  onClick={setCookies}
                   colorScheme="teal"
-                  variant="link"
-                  fontSize="12px"
-                  onClick={() => setSystemMessage("你是一个生成式AI助手")}
-                  color="teal.500"
+                  variant="outline"
                 >
-                  重置为默认值
+                  更新cookie
                 </Button>
-              </FormLabel>
-              <Textarea
-                onChange={(e: any) => setSystemMessage(e?.target?.value)}
-                value={systemMessage}
-              />
-            </Box>
-            <Box marginBottom="18px">
-              <FormLabel>
-                temperature
-                <Text display="inline-block" textAlign="center" width="38px">
-                  {temperature}
-                </Text>
-                <Button
-                  colorScheme="teal"
-                  variant="link"
-                  fontSize="12px"
-                  onClick={() => setTemperature(0.7)}
-                  color="teal.500"
-                >
-                  重置为默认值
-                </Button>
-              </FormLabel>
-              <FormHelperText marginBottom="4px">
-                0.8等较高值会使输出更加随机，而0.2等较低值则会使输出更加集中和确定。
-              </FormHelperText>
-              <Slider
-                value={temperature}
-                onChange={(e: any) => {
-                  setTemperature(e);
-                }}
-                min={0.0}
-                max={2.0}
-                step={0.1}
-              >
-                <SliderTrack></SliderTrack>
-                <SliderThumb bgColor="teal.500" />
-              </Slider>
-              <Box
-                display="flex"
-                justifyContent="space-between"
-                alignItems="center"
-                fontSize="12px"
-              >
-                <Text>精确</Text>
-                <Text>中性</Text>
-                <Text>创意</Text>
-              </Box>
-            </Box>
-            <Box marginBottom="18px">
-              <FormLabel>
-                presence_penalty
-                <Text display="inline-block" textAlign="center" width="40px">
-                  {presence_penalty}
-                </Text>
-                <Button
-                  colorScheme="teal"
-                  variant="link"
-                  fontSize="12px"
-                  onClick={() => setPresence_penalty(0)}
-                  color="teal.500"
-                >
-                  重置为默认值
-                </Button>
-              </FormLabel>
-              <FormHelperText marginBottom="4px">
-                根据新标记是否出现在文本中对其进行惩罚，从而增加模型谈论新话题的可能性。
-              </FormHelperText>
-              <Slider
-                value={presence_penalty}
-                onChange={(e: any) => {
-                  setPresence_penalty(e);
-                }}
-                min={0}
-                max={2.0}
-                step={0.1}
-              >
-                <SliderTrack></SliderTrack>
-                <SliderThumb bgColor="teal.500" />
-              </Slider>
-              <Box
-                display="flex"
-                justifyContent="space-between"
-                alignItems="center"
-                fontSize="12px"
-              >
-                <Text>平衡</Text>
-                <Text>思维开放</Text>
-              </Box>
-            </Box>
-            <Box marginBottom="18px">
-              <FormLabel>
-                frequency_penalty
-                <Text display="inline-block" textAlign="center" width="40px">
-                  {frequency_penalty}
-                </Text>
-                <Button
-                  colorScheme="teal"
-                  variant="link"
-                  fontSize="12px"
-                  onClick={() => setFrequency_penalty(0)}
-                  color="teal.500"
-                >
-                  重置为默认值
-                </Button>
-              </FormLabel>
-              <FormHelperText marginBottom="4px">
-                根据新标记在文本中的现有频率对其进行惩罚，从而降低模型逐字重复同一行的可能性。
-              </FormHelperText>
-              <Slider
-                value={frequency_penalty}
-                onChange={(e: any) => {
-                  setFrequency_penalty(e);
-                }}
-                min={0}
-                max={2.0}
-                step={0.1}
-              >
-                <SliderTrack></SliderTrack>
-                <SliderThumb bgColor="teal.500" />
-              </Slider>
-              <Box
-                display="flex"
-                justifyContent="space-between"
-                alignItems="center"
-                fontSize="12px"
-              >
-                <Text>平衡</Text>
-                <Text>减少重复</Text>
-              </Box>
-            </Box>
-            <Box marginBottom="18px">
-              <FormLabel>
-                top_p
-                <Text display="inline-block" textAlign="center" width="40px">
-                  {top_p}
-                </Text>
-                <Button
-                  colorScheme="teal"
-                  variant="link"
-                  fontSize="12px"
-                  onClick={() => setTop_p(1)}
-                  color="teal.500"
-                >
-                  重置为默认值
-                </Button>
-              </FormLabel>
-              <FormHelperText marginBottom="4px">
-                temperature采样的另一种方法top_p采样，即模型考虑概率质量为top_p的标记的结果。因此，0.1意味着只考虑概率最高的10%的文字。
-              </FormHelperText>
-              <Slider
-                value={top_p}
-                onChange={(e: any) => {
-                  setTop_p(e);
-                }}
-                min={0}
-                max={1.0}
-                step={0.1}
-              >
-                <SliderTrack></SliderTrack>
-                <SliderThumb bgColor="teal.500" />
-              </Slider>
-              <Box
-                display="flex"
-                justifyContent="space-between"
-                alignItems="center"
-                fontSize="12px"
-              >
-                <Text>精确</Text>
-                <Text>创意</Text>
-              </Box>
-            </Box>
+              </>
+            ) : (
+              <>
+                <Box marginBottom="18px">
+                  <FormLabel>
+                    初始系统指令
+                    <Button
+                      colorScheme="teal"
+                      variant="link"
+                      fontSize="12px"
+                      onClick={() => setSystemMessage("你是一个生成式AI助手")}
+                      color="teal.500"
+                    >
+                      重置为默认值
+                    </Button>
+                  </FormLabel>
+                  <Textarea
+                    onChange={(e: any) => setSystemMessage(e?.target?.value)}
+                    value={systemMessage}
+                  />
+                </Box>
+                <Box marginBottom="18px">
+                  <FormLabel>
+                    temperature
+                    <Text
+                      display="inline-block"
+                      textAlign="center"
+                      width="38px"
+                    >
+                      {temperature}
+                    </Text>
+                    <Button
+                      colorScheme="teal"
+                      variant="link"
+                      fontSize="12px"
+                      onClick={() => setTemperature(0.7)}
+                      color="teal.500"
+                    >
+                      重置为默认值
+                    </Button>
+                  </FormLabel>
+                  <FormHelperText marginBottom="4px">
+                    0.8等较高值会使输出更加随机，而0.2等较低值则会使输出更加集中和确定。
+                  </FormHelperText>
+                  <Slider
+                    value={temperature}
+                    onChange={(e: any) => {
+                      setTemperature(e);
+                    }}
+                    min={0.0}
+                    max={2.0}
+                    step={0.1}
+                  >
+                    <SliderTrack></SliderTrack>
+                    <SliderThumb bgColor="teal.500" />
+                  </Slider>
+                  <Box
+                    display="flex"
+                    justifyContent="space-between"
+                    alignItems="center"
+                    fontSize="12px"
+                  >
+                    <Text>精确</Text>
+                    <Text>中性</Text>
+                    <Text>创意</Text>
+                  </Box>
+                </Box>
+                <Box marginBottom="18px">
+                  <FormLabel>
+                    presence_penalty
+                    <Text
+                      display="inline-block"
+                      textAlign="center"
+                      width="40px"
+                    >
+                      {presence_penalty}
+                    </Text>
+                    <Button
+                      colorScheme="teal"
+                      variant="link"
+                      fontSize="12px"
+                      onClick={() => setPresence_penalty(0)}
+                      color="teal.500"
+                    >
+                      重置为默认值
+                    </Button>
+                  </FormLabel>
+                  <FormHelperText marginBottom="4px">
+                    根据新标记是否出现在文本中对其进行惩罚，从而增加模型谈论新话题的可能性。
+                  </FormHelperText>
+                  <Slider
+                    value={presence_penalty}
+                    onChange={(e: any) => {
+                      setPresence_penalty(e);
+                    }}
+                    min={0}
+                    max={2.0}
+                    step={0.1}
+                  >
+                    <SliderTrack></SliderTrack>
+                    <SliderThumb bgColor="teal.500" />
+                  </Slider>
+                  <Box
+                    display="flex"
+                    justifyContent="space-between"
+                    alignItems="center"
+                    fontSize="12px"
+                  >
+                    <Text>平衡</Text>
+                    <Text>思维开放</Text>
+                  </Box>
+                </Box>
+                <Box marginBottom="18px">
+                  <FormLabel>
+                    frequency_penalty
+                    <Text
+                      display="inline-block"
+                      textAlign="center"
+                      width="40px"
+                    >
+                      {frequency_penalty}
+                    </Text>
+                    <Button
+                      colorScheme="teal"
+                      variant="link"
+                      fontSize="12px"
+                      onClick={() => setFrequency_penalty(0)}
+                      color="teal.500"
+                    >
+                      重置为默认值
+                    </Button>
+                  </FormLabel>
+                  <FormHelperText marginBottom="4px">
+                    根据新标记在文本中的现有频率对其进行惩罚，从而降低模型逐字重复同一行的可能性。
+                  </FormHelperText>
+                  <Slider
+                    value={frequency_penalty}
+                    onChange={(e: any) => {
+                      setFrequency_penalty(e);
+                    }}
+                    min={0}
+                    max={2.0}
+                    step={0.1}
+                  >
+                    <SliderTrack></SliderTrack>
+                    <SliderThumb bgColor="teal.500" />
+                  </Slider>
+                  <Box
+                    display="flex"
+                    justifyContent="space-between"
+                    alignItems="center"
+                    fontSize="12px"
+                  >
+                    <Text>平衡</Text>
+                    <Text>减少重复</Text>
+                  </Box>
+                </Box>
+                <Box marginBottom="18px">
+                  <FormLabel>
+                    top_p
+                    <Text
+                      display="inline-block"
+                      textAlign="center"
+                      width="40px"
+                    >
+                      {top_p}
+                    </Text>
+                    <Button
+                      colorScheme="teal"
+                      variant="link"
+                      fontSize="12px"
+                      onClick={() => setTop_p(1)}
+                      color="teal.500"
+                    >
+                      重置为默认值
+                    </Button>
+                  </FormLabel>
+                  <FormHelperText marginBottom="4px">
+                    temperature采样的另一种方法top_p采样，即模型考虑概率质量为top_p的标记的结果。因此，0.1意味着只考虑概率最高的10%的文字。
+                  </FormHelperText>
+                  <Slider
+                    value={top_p}
+                    onChange={(e: any) => {
+                      setTop_p(e);
+                    }}
+                    min={0}
+                    max={1.0}
+                    step={0.1}
+                  >
+                    <SliderTrack></SliderTrack>
+                    <SliderThumb bgColor="teal.500" />
+                  </Slider>
+                  <Box
+                    display="flex"
+                    justifyContent="space-between"
+                    alignItems="center"
+                    fontSize="12px"
+                  >
+                    <Text>精确</Text>
+                    <Text>创意</Text>
+                  </Box>
+                </Box>
+              </>
+            )}
           </FormControl>
         }
         confirm={async () => {
@@ -1565,7 +1870,20 @@ export default function Home() {
               conversationList?.map((info: any, index: any) =>
                 info?.owner === "ai" ? (
                   <div key={info?.id} className={style.aiInfoWrap}>
-                    <span className={style.avatar}>🤖️</span>
+                    <span className={style.avatar}>
+                      {info?.model === "bard" ? (
+                        <Image
+                          src={BARD_LOGO}
+                          height={30}
+                          width={30}
+                          alt="bard"
+                        />
+                      ) : info?.model === "gpt-3.5-turbo" ? (
+                        <Gpt3Logo />
+                      ) : (
+                        <Gpt4Logo />
+                      )}
+                    </span>
                     <Popover
                       trigger={isMobile ? "click" : "hover"}
                       placement={isMobile ? "top-start" : "right-start"}

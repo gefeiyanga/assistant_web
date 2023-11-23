@@ -11,8 +11,11 @@ export interface Chat {
 }
 export interface Conversation {
   id: string;
+  ids?: Object;
   chatId: string;
   owner: "ai" | "me" | "time";
+  model: string;
+  images?: [];
   text: string;
   originText: string;
   date: number;
