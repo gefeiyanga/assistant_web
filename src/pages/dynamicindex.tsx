@@ -85,7 +85,7 @@ import {
   updateData,
   deleteStore,
 } from "../../lib/db";
-import BARD_LOGO from "public/icons/bard.png";
+import BARD_LOGO from "public/bard.png";
 
 import style from "./index.module.sass";
 

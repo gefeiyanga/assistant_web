@@ -1,7 +1,7 @@
 import React from "react";
 import Image from "next/image";
 
-import GptBaseLogo from "public/icons/ai.png";
+import GptBaseLogo from "public/ai.png";
 import { Box } from "@chakra-ui/react";
 
 export default function Gpt3Logo() {
