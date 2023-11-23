@@ -1877,6 +1877,9 @@ export default function Home() {
                           height={30}
                           width={30}
                           alt="bard"
+                          loader={({ src }) => {
+                            return src;
+                          }}
                         />
                       ) : info?.model === "gpt-3.5-turbo" ? (
                         <Gpt3Logo />

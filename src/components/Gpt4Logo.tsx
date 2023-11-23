@@ -12,6 +12,9 @@ export default function Gpt4Logo() {
         width={22}
         height={22}
         alt="gpt-base-logo"
+        loader={({ src }) => {
+          return src;
+        }}
       ></Image>
       <svg
         style={{ position: "absolute", right: "-2px", bottom: " -2px" }}
