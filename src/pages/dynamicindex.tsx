@@ -569,7 +569,7 @@ export default function Home() {
         });
         const response: any = await data.json();
 
-        if (response?.code !== 200 || !response?.success) {
+        if (response?.code == 200 && !response?.success) {
           toast({
             description: response?.message,
             duration: 3000,
