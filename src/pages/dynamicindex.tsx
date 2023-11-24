@@ -483,16 +483,18 @@ export default function Home() {
     const chatId = conversationList?.length
       ? conversationList[0].chatId
       : uuidv4();
+    const inputValueId = uuidv4();
     if (
       conversationList?.length > 0 &&
       conversationList?.filter(({ owner }: any) => owner !== "time")?.length %
         6 ===
         0
     ) {
+      const timeId = uuidv4();
       newList = [
         ...conversationList,
         {
-          id: uuidv4(),
+          id: timeId,
           chatId,
           text: "",
           originText: "",
@@ -502,7 +504,7 @@ export default function Home() {
           done: true,
         },
         {
-          id: uuidv4(),
+          id: inputValueId,
           chatId,
           text: inputValue,
           originText: inputValue,
@@ -512,11 +514,21 @@ export default function Home() {
           done: true,
         },
       ];
+      await addData(Stores.ConversationList, {
+        id: timeId,
+        chatId,
+        text: "",
+        originText: "",
+        owner: "time",
+        model,
+        date: dayjs().valueOf(),
+        done: true,
+      });
     } else {
       newList = [
         ...conversationList,
         {
-          id: uuidv4(),
+          id: inputValueId,
           chatId,
           text: inputValue,
           originText: inputValue,
@@ -530,7 +542,7 @@ export default function Home() {
     setConversationList([...newList]);
     scrollToBottom(true);
     await addData(Stores.ConversationList, {
-      id: uuidv4(),
+      id: inputValueId,
       chatId,
       text: inputValue,
       originText: inputValue,
