@@ -98,9 +98,9 @@ const Models = [
   {
     value: "gpt-4-vision-preview",
   },
-  {
-    value: "bard",
-  },
+  // {
+  //   value: "bard",
+  // },
 ];
 
 function highlightBlock(str: string, lang?: string) {
