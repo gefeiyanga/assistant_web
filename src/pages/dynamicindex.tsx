@@ -568,6 +568,14 @@ export default function Home() {
           }),
         });
         const response: any = await data.json();
+        if (response?.statusCode === 500) {
+          toast({
+            description: "请先更新cookies",
+            duration: 3000,
+            status: "warning",
+            variant: "solid",
+          });
+        }
 
         if (response?.code == 200 && !response?.success) {
           toast({
