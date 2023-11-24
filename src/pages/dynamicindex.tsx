@@ -1905,7 +1905,7 @@ export default function Home() {
                           className={style.text}
                           style={
                             colorMode === "light"
-                              ? { background: "#e5e9ec" }
+                              ? { background: "#ffffff" }
                               : { background: "#2D3748" }
                           }
                           dangerouslySetInnerHTML={{
@@ -1960,7 +1960,7 @@ export default function Home() {
                             className={style.text}
                             style={
                               colorMode === "light"
-                                ? { background: "#e5e9ec" }
+                                ? { background: "#ffffff" }
                                 : { background: "#2D3748" }
                             }
                           >
