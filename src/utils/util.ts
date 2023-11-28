@@ -26,3 +26,5 @@ export function scrollToBottom(ifNeedScroll: boolean) {
     }, 10);
   }
 }
+
+export const BASE_URL = "/assistant";

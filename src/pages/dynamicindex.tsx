@@ -66,7 +66,7 @@ import Image from "next/image";
 
 import PROMPT from "@/configs/prompts.json";
 import useCopyCode from "@/hooks/useCopyCode";
-import { scrollToBottom } from "@/utils/util";
+import { scrollToBottom, BASE_URL } from "@/utils/util";
 import InitLanguages from "@/utils/initLanguages";
 import SpeechRecognition from "@/components/Microphone";
 import OperationDialog from "@/components/OperationDialog";
@@ -356,7 +356,7 @@ export default function Home() {
 
     if (id instanceof Object) {
       let ids = { ...id };
-      const data: any = await fetch("/bard-chat", {
+      const data: any = await fetch(BASE_URL + "/bard/chat", {
         method: "POST",
         headers: {
           "Content-Type": "application/json;charset=UTF-8",
@@ -378,7 +378,7 @@ export default function Home() {
     } else {
       let originText = "";
       try {
-        const response: any = await fetch("/chat", {
+        const response: any = await fetch(BASE_URL + "/open-ai/chat", {
           method: "POST",
           headers: {
             "Content-Type": "application/json;charset=UTF-8",
@@ -568,7 +568,7 @@ export default function Home() {
       const date = dayjs().valueOf();
       let id = uuidv4();
       try {
-        const data: any = await fetch("/bard-chat", {
+        const data: any = await fetch(BASE_URL + "/bard/chat", {
           method: "POST",
           signal,
           headers: {
@@ -686,7 +686,7 @@ export default function Home() {
       let prevData;
       const date = dayjs().valueOf();
       try {
-        const response: any = await fetch("/chat", {
+        const response: any = await fetch(BASE_URL + "/open-ai/chat", {
           method: "POST",
           signal,
           headers: {
@@ -1066,7 +1066,7 @@ export default function Home() {
       return;
     }
     setCookiesBtnLoading(true);
-    fetch("/set-cookies", {
+    fetch(BASE_URL + "/bard/set-cookies", {
       method: "POST",
       headers: {
         "Content-Type": "application/json;charset=UTF-8",

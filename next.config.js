@@ -16,18 +16,9 @@ const nextConfig = {
   rewrites: () => {
     return [
       {
-        source: "/chat",
-        destination: "http://127.0.0.1:3000/open-ai/chat",
-        // destination: "https://60.204.155.1/chat",
-      },
-      {
-        source: "/bard-chat",
-        destination: "http://127.0.0.1:3000/bard/chat",
-        // destination: "https://60.204.155.1/chat",
-      },
-      {
-        source: "/set-cookies",
-        destination: "http://127.0.0.1:3000/bard/set-cookies",
+        source: "/assistant/:path*",
+        destination: "http://127.0.0.1:3000/assistant/:path*",
+        // destination: "https://60.204.155.1/assistant",
       },
     ];
   },
