@@ -732,6 +732,7 @@ export default function Home() {
 
             if (data?.text) {
               originText = data?.text;
+
               text = mdi.render(data?.text);
             }
 
