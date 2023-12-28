@@ -93,13 +93,13 @@ const DIETEXT = "Please wait a minute";
 
 const Models = [
   {
+    value: "gemini-pro",
+  },
+  {
     value: "gpt-3.5-turbo",
   },
   {
     value: "gpt-4-vision-preview",
-  },
-  {
-    value: "bard",
   },
 ];
 
@@ -151,11 +151,6 @@ export default function Home() {
   const [top_p, setTop_p] = useState(1);
 
   const ifNeedScroll = useRef<boolean>(true);
-  const [cookiesBtnLoading, setCookiesBtnLoading] = useState(false);
-
-  // bard cookie参数
-  const [_1psid, set_1psid] = useState("");
-  const [_1psidts, set_1psidts] = useState("");
 
   // 删除单个对话的配置项
   const delCurrentChatRef = useRef<any>();
@@ -269,7 +264,7 @@ export default function Home() {
         setFrequency_penalty(modelConfig?.frequency_penalty);
         setTop_p(modelConfig?.top_p);
       } else {
-        setModel("gpt-3.5-turbo");
+        setModel("gemini-pro");
       }
       setChatList(
         chatList?.sort((a: Chat, b: Chat) => {
@@ -354,105 +349,79 @@ export default function Home() {
     setChatList([...chatList, { id: chatId, title: "新对话", date }]);
     setCurrentChat(chatId);
 
-    if (id instanceof Object) {
-      let ids = { ...id };
-      const data: any = await fetch(BASE_URL + "/bard/chat", {
+    let originText = "";
+    try {
+      const response: any = await fetch(BASE_URL + "/open-ai/chat", {
         method: "POST",
         headers: {
           "Content-Type": "application/json;charset=UTF-8",
         },
         body: JSON.stringify({
-          question:
-            "15个字总结我们已上对话，注意不要出现【好的，以下是 15 个字的总结：】类似文字",
-          ...ids,
+          question: "帮我生成对话标题，直接输出标题，不需要冒号",
+          id,
+          systemMessage:
+            "你将尝试总结新对话的标题(请不要出现【对话标题：】这种标识)，以使其更清晰和集中。你会分析对话中的关键信息和问题，并利用这些信息生成一个简洁而准确的标题。这将有助于确保对话参与者更容易理解话题并找到他们感兴趣的信息",
+          model: "gpt-3.5-turbo",
+          temperature: 0.2,
+          presence_penalty: -1,
+          frequency_penalty: 0,
+          top_p: 0.2,
         }),
       });
-      const response = await data?.json();
-      if (response?.content) {
-        setChatList([
-          ...chatList,
-          { id: chatId, title: response?.content, date },
-        ]);
-        updateData(Stores.ChatList, chatId, { title: response?.content });
-      }
-    } else {
-      let originText = "";
-      try {
-        const response: any = await fetch(BASE_URL + "/open-ai/chat", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json;charset=UTF-8",
-          },
-          body: JSON.stringify({
-            question: "帮我生成对话标题，直接输出标题，不需要冒号",
-            id,
-            systemMessage:
-              "你将尝试总结新对话的标题(请不要出现【对话标题：】这种标识)，以使其更清晰和集中。你会分析对话中的关键信息和问题，并利用这些信息生成一个简洁而准确的标题。这将有助于确保对话参与者更容易理解话题并找到他们感兴趣的信息",
-            model: "gpt-3.5-turbo",
-            temperature: 0.2,
-            presence_penalty: -1,
-            frequency_penalty: 0,
-            top_p: 0.2,
-          }),
-        });
 
-        // instead of response.json() and other methods
-        const reader = response.body.getReader();
-        let decoder = new TextDecoder("utf-8");
+      // instead of response.json() and other methods
+      const reader = response.body.getReader();
+      let decoder = new TextDecoder("utf-8");
 
-        // infinite loop while the body is downloading
-        while (true) {
-          // done is true for the last chunk
-          // value is Uint8Array of the chunk bytes
-          const { done, value } = await reader.read();
+      // infinite loop while the body is downloading
+      while (true) {
+        // done is true for the last chunk
+        // value is Uint8Array of the chunk bytes
+        const { done, value } = await reader.read();
 
-          // let encodedString = String.fromCodePoint.apply(null, value);
-          // let decodedString = decodeURIComponent(escape(encodedString)); //没有这一步中文会乱码
-          let decodedString = decoder.decode(value);
-          // Always process the final line
-          const lastIndex = decodedString.lastIndexOf(
-            "\n",
-            decodedString.length - 2
-          );
-          let chunk = decodedString;
-          if (lastIndex !== -1) {
-            chunk = decodedString.substring(lastIndex);
-          }
-          try {
-            const data = JSON.parse(chunk);
-
-            if (data?.text) {
-              originText = data?.text;
-            }
-            setChatList([...chatList, { id: chatId, title: originText, date }]);
-            updateData(Stores.ChatList, chatId, { title: originText });
-          } catch (error) {
-            if (!originText?.trim()?.length) {
-              setChatList([...chatList, { id: chatId, title: "新对话", date }]);
-              updateData(Stores.ChatList, chatId, { title: "新对话" });
-            } else {
-              setChatList([
-                ...chatList,
-                { id: chatId, title: originText, date },
-              ]);
-              updateData(Stores.ChatList, chatId, { title: originText });
-            }
-          }
-
-          if (done) {
-            break;
-          }
+        // let encodedString = String.fromCodePoint.apply(null, value);
+        // let decodedString = decodeURIComponent(escape(encodedString)); //没有这一步中文会乱码
+        let decodedString = decoder.decode(value);
+        // Always process the final line
+        const lastIndex = decodedString.lastIndexOf(
+          "\n",
+          decodedString.length - 2
+        );
+        let chunk = decodedString;
+        if (lastIndex !== -1) {
+          chunk = decodedString.substring(lastIndex);
         }
-      } catch (error) {
-        console.log(error);
+        try {
+          const data = JSON.parse(chunk);
 
-        if (!originText?.trim()?.length) {
-          setChatList([...chatList, { id: chatId, title: "新对话", date }]);
-          updateData(Stores.ChatList, chatId, { title: "新对话" });
-        } else {
+          if (data?.text) {
+            originText = data?.text;
+          }
           setChatList([...chatList, { id: chatId, title: originText, date }]);
           updateData(Stores.ChatList, chatId, { title: originText });
+        } catch (error) {
+          if (!originText?.trim()?.length) {
+            setChatList([...chatList, { id: chatId, title: "新对话", date }]);
+            updateData(Stores.ChatList, chatId, { title: "新对话" });
+          } else {
+            setChatList([...chatList, { id: chatId, title: originText, date }]);
+            updateData(Stores.ChatList, chatId, { title: originText });
+          }
         }
+
+        if (done) {
+          break;
+        }
+      }
+    } catch (error) {
+      console.log(error);
+
+      if (!originText?.trim()?.length) {
+        setChatList([...chatList, { id: chatId, title: "新对话", date }]);
+        updateData(Stores.ChatList, chatId, { title: "新对话" });
+      } else {
+        setChatList([...chatList, { id: chatId, title: originText, date }]);
+        updateData(Stores.ChatList, chatId, { title: originText });
       }
     }
   };
@@ -480,6 +449,7 @@ export default function Home() {
     inputRef?.current?.blur();
     setLoading(true);
     let newList: Conversation[] = [];
+    let history: any[] = [];
     const chatId = conversationList?.length
       ? conversationList[0].chatId
       : uuidv4();
@@ -557,18 +527,20 @@ export default function Home() {
     controllerRef.current = new AbortController();
     const signal = controllerRef.current.signal;
 
-    if (model === "bard") {
-      let ids = null;
-      for (let i = newList?.length - 1; i >= 0; i--) {
-        if (newList[i]?.owner === "ai" && newList[i]?.ids) {
-          ids = newList[i]?.ids;
-          break;
-        }
-      }
+    if (model === "gemini-pro") {
+      let text = "",
+        originText = "";
+
+      let prevData;
       const date = dayjs().valueOf();
-      let id = uuidv4();
+      history = conversationList
+        ?.filter((item) => item?.owner !== "time")
+        ?.map((item) => ({
+          parts: item?.originText,
+          role: item?.owner === "me" ? "user" : "model",
+        }));
       try {
-        const data: any = await fetch(BASE_URL + "/bard/chat", {
+        const response: any = await fetch(BASE_URL + "/bard/chat", {
           method: "POST",
           signal,
           headers: {
@@ -576,101 +548,205 @@ export default function Home() {
           },
           body: JSON.stringify({
             question,
-            ...ids,
+            history,
           }),
         });
-        const response: any = await data.json();
-        if (response?.statusCode === 500) {
-          toast({
-            description: "请先更新cookies",
-            duration: 3000,
-            status: "warning",
-            variant: "solid",
-          });
-        }
 
-        if (response?.code == 200 && !response?.success) {
-          toast({
-            description: response?.message,
-            duration: 3000,
-            status: "warning",
-            variant: "solid",
-          });
+        // instead of response.json() and other methods
+        const reader = response.body.getReader();
+        let decoder = new TextDecoder("utf-8");
+
+        // infinite loop while the body is downloading
+        while (true) {
+          // done is true for the last chunk
+          // value is Uint8Array of the chunk bytes
+          const { done, value } = await reader.read();
+
+          // let encodedString = String.fromCodePoint.apply(null, value);
+          // let decodedString = decodeURIComponent(escape(encodedString)); //没有这一步中文会乱码
+          let decodedString = decoder.decode(value);
+          // Always process the final line
+          const lastIndex = decodedString.lastIndexOf(
+            "\n",
+            decodedString.length - 2
+          );
+          let chunk = decodedString;
+          if (lastIndex !== -1) {
+            chunk = decodedString.substring(lastIndex);
+          }
+          try {
+            const data = JSON.parse(chunk);
+            prevData = JSON.parse(chunk);
+
+            if (data?.text) {
+              originText = data?.text;
+
+              text = mdi.render(data?.text);
+            }
+
+            setConversationList([
+              ...newList,
+              {
+                id: data?.id,
+                chatId,
+                owner: "ai",
+                model,
+                text,
+                originText,
+                date,
+                done,
+              },
+            ]);
+            scrollToBottom(ifNeedScroll.current);
+            if (await getData(Stores.ConversationList, data?.id)) {
+              await updateData(Stores.ConversationList, data?.id, {
+                id: data?.id,
+                chatId,
+                owner: "ai",
+                model,
+                text,
+                originText,
+                done,
+              });
+            } else {
+              await addData(Stores.ConversationList, {
+                id: data?.id,
+                chatId,
+                owner: "ai",
+                model,
+                text,
+                originText,
+                date,
+                done,
+              });
+            }
+          } catch (error) {
+            console.log("error: ", error);
+
+            if (!text?.trim()?.length) {
+              setConversationList([
+                ...newList,
+                {
+                  id: uuidv4(),
+                  chatId,
+                  owner: "ai",
+                  model,
+                  text: DIETEXT,
+                  originText: DIETEXT,
+                  date,
+                  done: true,
+                },
+              ]);
+              scrollToBottom(true);
+              await addData(Stores.ConversationList, {
+                id: uuidv4(),
+                chatId,
+                owner: "ai",
+                model,
+                text: DIETEXT,
+                originText: DIETEXT,
+                date,
+                done: true,
+              });
+            } else {
+              setConversationList([
+                ...newList,
+                {
+                  id: prevData?.id,
+                  chatId,
+                  owner: "ai",
+                  model,
+                  text,
+                  originText,
+                  date,
+                  done,
+                },
+              ]);
+              scrollToBottom(true);
+              await updateData(Stores.ConversationList, prevData?.id, {
+                id: prevData?.id,
+                chatId,
+                owner: "ai",
+                model,
+                text,
+                done,
+                originText,
+              });
+            }
+          }
+
+          if (done) {
+            if (!(await getData(Stores.ChatList, chatId))) {
+              // summarize(chatList, response?.ids, chatId, date);
+              addData(Stores.ChatList, {
+                id: chatId,
+                title: originText?.slice(0, 20),
+                date,
+              });
+              setChatList([
+                ...chatList,
+                { id: chatId, title: originText?.slice(0, 20), date },
+              ]);
+              setCurrentChat(chatId);
+            }
+            break;
+          }
         }
-        let id = uuidv4();
-        const text = mdi.render(response?.content);
-        // const text = response?.content;
-        setConversationList([
-          ...newList,
-          {
-            id,
-            ids: response?.ids,
-            images: response?.images,
-            chatId,
-            owner: "ai",
-            model,
-            text,
-            originText: response?.content,
-            date,
-            done: true,
-          },
-        ]);
-        scrollToBottom(true);
-        if (!(await getData(Stores.ChatList, chatId))) {
-          // summarize(chatList, response?.ids, chatId, date);
-          addData(Stores.ChatList, {
-            id: chatId,
-            title: response?.content?.slice(0, 20),
-            date,
-          });
-          setChatList([
-            ...chatList,
-            { id: chatId, title: response?.content?.slice(0, 20), date },
-          ]);
-          setCurrentChat(chatId);
-        }
-        await addData(Stores.ConversationList, {
-          id,
-          ids: response?.ids,
-          images: response?.images,
-          chatId,
-          owner: "ai",
-          model,
-          text,
-          originText: response?.content,
-          date,
-          done: true,
-        });
+        setLoading(false);
+        inputRef?.current?.focus();
       } catch (error) {
         console.log(error);
-        setConversationList([
-          ...newList,
-          {
-            id,
-            ids: {},
-            images: [],
+
+        if (!text?.trim()?.length) {
+          setConversationList([
+            ...newList,
+            {
+              id: uuidv4(),
+              chatId,
+              owner: "ai",
+              model,
+              text: DIETEXT,
+              originText: DIETEXT,
+              done: true,
+              date,
+            },
+          ]);
+          scrollToBottom(true);
+          await addData(Stores.ConversationList, {
+            id: uuidv4(),
             chatId,
             owner: "ai",
             model,
             text: DIETEXT,
             originText: DIETEXT,
-            date,
             done: true,
-          },
-        ]);
-        scrollToBottom(true);
-        await addData(Stores.ConversationList, {
-          id,
-          ids: {},
-          images: [],
-          chatId,
-          owner: "ai",
-          model,
-          text: DIETEXT,
-          originText: DIETEXT,
-          date,
-          done: true,
-        });
+            date,
+          });
+        } else {
+          setConversationList([
+            ...newList,
+            {
+              id: prevData?.id,
+              chatId,
+              owner: "ai",
+              model,
+              text,
+              done: true,
+              originText,
+              date,
+            },
+          ]);
+          scrollToBottom(true);
+          await updateData(Stores.ConversationList, prevData?.id, {
+            id: prevData?.id,
+            chatId,
+            owner: "ai",
+            model,
+            text,
+            done: true,
+            originText,
+          });
+        }
       }
     } else {
       let id = "";
@@ -1054,53 +1130,6 @@ export default function Home() {
         </Box>
       </Box>
     );
-  };
-
-  const setCookies = () => {
-    if (!_1psid?.length || !_1psidts?.length) {
-      toast({
-        description: "请先填写cookies",
-        duration: 3000,
-        status: "warning",
-        variant: "solid",
-      });
-      return;
-    }
-    setCookiesBtnLoading(true);
-    fetch(BASE_URL + "/bard/set-cookies", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json;charset=UTF-8",
-      },
-      body: JSON.stringify({
-        "__Secure-1PSID": _1psid,
-        "__Secure-1PSIDTS": _1psidts,
-      }),
-    })
-      .then(async (response: Response) => {
-        if (response?.ok) {
-          const result: any = await response.json();
-
-          if (result?.code == 200 && result?.success) {
-            toast({
-              description: result?.message || "Bard ai cookies更新成功",
-              duration: 3000,
-              variant: "solid",
-            });
-            onCloseGptConfigModal();
-          } else {
-            toast({
-              description: result?.message || "Bard ai cookies更新失败",
-              duration: 3000,
-              status: "error",
-              variant: "solid",
-            });
-          }
-        }
-      })
-      .finally(() => {
-        setCookiesBtnLoading(false);
-      });
   };
 
   return (
@@ -1504,10 +1533,10 @@ export default function Home() {
                 onChange={async (e: any) => {
                   if (
                     conversationList?.length &&
-                    ((model === "bard" &&
+                    ((model === "gemini-pro" &&
                       e?.target?.value?.search("gpt") > -1) ||
                       (model?.search("gpt") > -1 &&
-                        e?.target?.value === "bard"))
+                        e?.target?.value === "gemini-pro"))
                   ) {
                     setNextModel(e?.target?.value);
                     onOpenNewChatAlertModal();
@@ -1526,31 +1555,8 @@ export default function Home() {
                 })}
               </Select>
             </Box>
-            {model === "bard" ? (
-              <>
-                <Box marginBottom="18px">
-                  <FormLabel>__Secure-1PSID</FormLabel>
-                  <Input
-                    value={_1psid}
-                    onChange={(e) => set_1psid(e?.target?.value)}
-                  />
-                </Box>
-                <Box marginBottom="18px">
-                  <FormLabel>__Secure-1PSIDTS</FormLabel>
-                  <Input
-                    value={_1psidts}
-                    onChange={(e) => set_1psidts(e?.target?.value)}
-                  />
-                </Box>
-                <Button
-                  isLoading={cookiesBtnLoading}
-                  onClick={setCookies}
-                  colorScheme="teal"
-                  variant="outline"
-                >
-                  更新cookie
-                </Button>
-              </>
+            {model === "gemini-pro" ? (
+              <></>
             ) : (
               <>
                 <Box marginBottom="18px">
@@ -1892,7 +1898,7 @@ export default function Home() {
                 info?.owner === "ai" ? (
                   <div key={info?.id} className={style.aiInfoWrap}>
                     <span className={style.avatar}>
-                      {info?.model === "bard" ? (
+                      {info?.model === "gemini-pro" ? (
                         <Image
                           src={BARD_LOGO}
                           height={30}
