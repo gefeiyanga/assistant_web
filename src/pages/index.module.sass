@@ -98,6 +98,31 @@
             padding: 4px 12px
             border-radius: 12px
             border: 1px solid #71b6b9
+          .typeWrap
+            &>dd:last-child:after,
+            &>dl:last-child:after,
+            &>dt:last-child:after,
+            &>h1:last-child:after,
+            &>h2:last-child:after,
+            &>h3:last-child:after,
+            &>h4:last-child:after,
+            &>h5:last-child:after,
+            &>h6:last-child:after,
+            &>li:last-child:after,
+            &>ol:last-child li:last-child:after,
+            &>p:last-child:after,
+            &>pre:last-child code:after,
+            &>td:last-child:after,
+            &>ul:last-child li:last-child:after 
+              animation: blink 0.5s steps(5, start) infinite
+              color: #000
+              content: '|'
+              font-weight: 700
+              margin-left: 3px
+              vertical-align: baseline
+            @keyframes blink 
+              to 
+                visibility: hidden
             img
               width: 100%
             .code-block-wrapper 

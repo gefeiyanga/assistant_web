@@ -1922,7 +1922,9 @@ export default function Home() {
                     >
                       <PopoverTrigger>
                         <div
-                          className={style.text}
+                          className={`${style.text} ${
+                            loading ? style.typeWrap : null
+                          }`}
                           style={
                             colorMode === "light"
                               ? { background: "#ffffff" }
