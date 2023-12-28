@@ -1072,7 +1072,7 @@ export default function Home() {
                 key={item?.id}
               >
                 <Box>
-                  <ChatIcon />
+                  <ChatIcon style={{ transform: "translate(0px, -1px)" }} />
                 </Box>
                 <Box
                   width={
