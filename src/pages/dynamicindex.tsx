@@ -1901,8 +1901,8 @@ export default function Home() {
                       {info?.model === "gemini-pro" ? (
                         <Image
                           src={BARD_LOGO}
-                          height={30}
-                          width={30}
+                          height={22}
+                          width={22}
                           alt="bard"
                           loader={({ src }) => {
                             return src;
