@@ -1516,7 +1516,8 @@ export default function Home() {
             setFrequency_penalty(modelConfig?.frequency_penalty);
             setTop_p(modelConfig?.top_p);
           } else {
-            setModel("gpt-3.5-turbo");
+            setModel("gemini-pro");
+            // setModel("gpt-3.5-turbo");
             setSystemMessage("你是一个生成式AI助手");
             setTemperature(0.7);
             setPresence_penalty(0);
