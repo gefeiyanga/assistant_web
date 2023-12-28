@@ -426,6 +426,17 @@ export default function Home() {
     }
   };
 
+  const shiftWaitingItem = (newList: Conversation[]) => {
+    let list: any[] = [];
+    for (let i = newList?.length - 1; i >= 0; i--) {
+      if (newList[i]?.id === "waitingId") {
+        list = newList?.slice(0, i);
+        break;
+      }
+    }
+    return list?.length ? list : newList;
+  };
+
   const send = async () => {
     if (loading) {
       return;
@@ -454,6 +465,28 @@ export default function Home() {
       ? conversationList[0].chatId
       : uuidv4();
     const inputValueId = uuidv4();
+    const waitingAndInputList: Conversation[] = [
+      {
+        id: inputValueId,
+        chatId,
+        text: inputValue,
+        originText: inputValue,
+        owner: "me",
+        model,
+        date: dayjs().valueOf(),
+        done: true,
+      },
+      {
+        id: "waitingId",
+        chatId,
+        text: mdi.render("生成中..."),
+        originText: "",
+        owner: "ai",
+        model,
+        date: dayjs().valueOf(),
+        done: false,
+      },
+    ];
     if (
       conversationList?.length > 0 &&
       conversationList?.filter(({ owner }: any) => owner !== "time")?.length %
@@ -473,16 +506,7 @@ export default function Home() {
           date: dayjs().valueOf(),
           done: true,
         },
-        {
-          id: inputValueId,
-          chatId,
-          text: inputValue,
-          originText: inputValue,
-          owner: "me",
-          model,
-          date: dayjs().valueOf(),
-          done: true,
-        },
+        ...waitingAndInputList,
       ];
       await addData(Stores.ConversationList, {
         id: timeId,
@@ -495,19 +519,7 @@ export default function Home() {
         done: true,
       });
     } else {
-      newList = [
-        ...conversationList,
-        {
-          id: inputValueId,
-          chatId,
-          text: inputValue,
-          originText: inputValue,
-          owner: "me",
-          model,
-          date: dayjs().valueOf(),
-          done: true,
-        },
-      ];
+      newList = [...conversationList, ...waitingAndInputList];
     }
     setConversationList([...newList]);
     scrollToBottom(true);
@@ -580,10 +592,9 @@ export default function Home() {
 
             if (data?.text) {
               originText = data?.text;
-
               text = mdi.render(data?.text);
             }
-
+            newList = shiftWaitingItem(newList);
             setConversationList([
               ...newList,
               {
@@ -622,7 +633,7 @@ export default function Home() {
             }
           } catch (error) {
             console.log("error: ", error);
-
+            newList = shiftWaitingItem(newList);
             if (!text?.trim()?.length) {
               setConversationList([
                 ...newList,
@@ -680,12 +691,16 @@ export default function Home() {
               // summarize(chatList, response?.ids, chatId, date);
               addData(Stores.ChatList, {
                 id: chatId,
-                title: originText?.slice(0, 20),
+                title: (originText || inputValue)?.slice(0, 20),
                 date,
               });
               setChatList([
                 ...chatList,
-                { id: chatId, title: originText?.slice(0, 20), date },
+                {
+                  id: chatId,
+                  title: (originText || inputValue)?.slice(0, 20),
+                  date,
+                },
               ]);
               setCurrentChat(chatId);
             }
@@ -696,7 +711,7 @@ export default function Home() {
         inputRef?.current?.focus();
       } catch (error) {
         console.log(error);
-
+        newList = shiftWaitingItem(newList);
         if (!text?.trim()?.length) {
           setConversationList([
             ...newList,
@@ -808,10 +823,9 @@ export default function Home() {
 
             if (data?.text) {
               originText = data?.text;
-
               text = mdi.render(data?.text);
             }
-
+            newList = shiftWaitingItem(newList);
             setConversationList([
               ...newList,
               {
@@ -849,6 +863,8 @@ export default function Home() {
               });
             }
           } catch (error) {
+            console.log("error: ", error);
+            newList = shiftWaitingItem(newList);
             if (!text?.trim()?.length) {
               setConversationList([
                 ...newList,
@@ -912,7 +928,7 @@ export default function Home() {
         inputRef?.current?.focus();
       } catch (error) {
         console.log(error);
-
+        newList = shiftWaitingItem(newList);
         if (!text?.trim()?.length) {
           setConversationList([
             ...newList,
@@ -1905,9 +1921,10 @@ export default function Home() {
                           height={22}
                           width={22}
                           alt="bard"
-                          loader={({ src }) => {
-                            return src;
-                          }}
+                          // loader={({ src }) => {
+                          //   return src;
+                          // }}
+                          unoptimized
                         />
                       ) : info?.model === "gpt-3.5-turbo" ? (
                         <Gpt3Logo />
@@ -1923,7 +1940,7 @@ export default function Home() {
                       <PopoverTrigger>
                         <div
                           className={`${style.text} ${
-                            loading ? style.typeWrap : null
+                            info?.done ? null : style.typeWrap
                           }`}
                           style={
                             colorMode === "light"

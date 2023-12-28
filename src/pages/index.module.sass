@@ -114,12 +114,13 @@
             &>pre:last-child code:after,
             &>td:last-child:after,
             &>ul:last-child li:last-child:after 
-              animation: blink 0.5s steps(5, start) infinite
+              animation: blink 1s steps(5, start) infinite
               color: #000
               content: '|'
               font-weight: 700
-              margin-left: 3px
-              vertical-align: baseline
+              margin-left: 4px
+              transform: translate(0px, -1px)
+              display: inline-block
             @keyframes blink 
               to 
                 visibility: hidden
