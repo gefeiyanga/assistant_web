@@ -691,14 +691,14 @@ export default function Home() {
               // summarize(chatList, response?.ids, chatId, date);
               addData(Stores.ChatList, {
                 id: chatId,
-                title: (originText || inputValue)?.slice(0, 20),
+                title: inputValue?.slice(0, 20),
                 date,
               });
               setChatList([
                 ...chatList,
                 {
                   id: chatId,
-                  title: (originText || inputValue)?.slice(0, 20),
+                  title: inputValue?.slice(0, 20),
                   date,
                 },
               ]);
