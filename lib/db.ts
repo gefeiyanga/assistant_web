@@ -2,7 +2,7 @@ import { Dayjs } from "dayjs";
 
 let request: IDBOpenDBRequest;
 let db: IDBDatabase;
-let version = 6;
+let version = 7;
 
 export interface Chat {
   id: string;
